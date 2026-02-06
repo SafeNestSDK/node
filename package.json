@@ -1,0 +1,67 @@
+{
+  "name": "@safenest/sdk",
+  "version": "1.0.1",
+  "description": "TypeScript SDK for SafeNest AI child safety API - Detect bullying, grooming, and unsafe content",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./constants": {
+      "import": "./dist/constants.js",
+      "types": "./dist/constants.d.ts"
+    },
+    "./types": {
+      "import": "./dist/types/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": [
+    "safenest",
+    "child-safety",
+    "content-moderation",
+    "bullying-detection",
+    "grooming-detection",
+    "ai",
+    "sdk",
+    "typescript",
+    "parental-control",
+    "online-safety"
+  ],
+  "author": "SafeNest <hello@safenest.dev>",
+  "license": "MIT",
+  "homepage": "https://safenest.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SafeNestSDK/node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SafeNestSDK/node/issues",
+    "email": "support@safenest.dev"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
