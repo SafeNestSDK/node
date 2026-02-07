@@ -482,9 +482,11 @@ describe('SafeNest', () => {
                     { is_bullying: false },
                     {
                         headers: {
-                            'x-usage-limit': '10000',
-                            'x-usage-used': '5000',
-                            'x-usage-remaining': '5000',
+                            'x-monthly-limit': '10000',
+                            'x-monthly-used': '5000',
+                            'x-monthly-remaining': '5000',
+                            'x-ratelimit-limit': '1000',
+                            'x-ratelimit-remaining': '999',
                             'x-request-id': 'req_123',
                         },
                     }
@@ -497,6 +499,11 @@ describe('SafeNest', () => {
                 limit: 10000,
                 used: 5000,
                 remaining: 5000,
+            });
+            expect(safenest.rateLimit).toEqual({
+                limit: 1000,
+                remaining: 999,
+                reset: undefined,
             });
             expect(safenest.lastRequestId).toBe('req_123');
         });

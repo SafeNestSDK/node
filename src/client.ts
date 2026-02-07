@@ -1,6 +1,7 @@
 import {
     SafeNestOptions,
     Usage,
+    RateLimitInfo,
     ApiError,
     // Safety types
     DetectBullyingInput,
@@ -24,6 +25,12 @@ import {
     // Policy types
     PolicyConfig,
     PolicyConfigResponse,
+    // Usage types
+    UsageSummary,
+    UsageQuota,
+    // Batch types
+    BatchAnalyzeInput,
+    BatchAnalyzeResult,
 } from './types/index.js';
 
 import {
@@ -81,8 +88,10 @@ export class SafeNest {
     private readonly retryDelay: number;
 
     private _usage: Usage | null = null;
+    private _rateLimit: RateLimitInfo | null = null;
     private _lastRequestId: string | null = null;
     private _lastLatencyMs: number | null = null;
+    private _usageWarning: string | null = null;
 
     /**
      * Create a new SafeNest client
@@ -125,10 +134,24 @@ export class SafeNest {
     }
 
     /**
-     * Get current usage stats from the last request
+     * Get current monthly usage stats from the last request
      */
     get usage(): Usage | null {
         return this._usage;
+    }
+
+    /**
+     * Get rate limit info from the last request (per-minute limits)
+     */
+    get rateLimit(): RateLimitInfo | null {
+        return this._rateLimit;
+    }
+
+    /**
+     * Get usage warning message if usage is above 80%
+     */
+    get usageWarning(): string | null {
+        return this._usageWarning;
     }
 
     /**
@@ -215,22 +238,39 @@ export class SafeNest {
             // Extract metadata from headers
             this._lastRequestId = response.headers.get('x-request-id');
 
-            const usageLimit = response.headers.get('x-usage-limit');
-            const usageUsed = response.headers.get('x-usage-used');
-            const usageRemaining = response.headers.get('x-usage-remaining');
+            // Monthly usage headers (X-Monthly-*)
+            const monthlyLimit = response.headers.get('x-monthly-limit');
+            const monthlyUsed = response.headers.get('x-monthly-used');
+            const monthlyRemaining = response.headers.get('x-monthly-remaining');
 
-            if (usageLimit && usageUsed && usageRemaining) {
+            if (monthlyLimit && monthlyUsed && monthlyRemaining) {
                 this._usage = {
-                    limit: parseInt(usageLimit, 10),
-                    used: parseInt(usageUsed, 10),
-                    remaining: parseInt(usageRemaining, 10),
+                    limit: parseInt(monthlyLimit, 10),
+                    used: parseInt(monthlyUsed, 10),
+                    remaining: parseInt(monthlyRemaining, 10),
                 };
             }
+
+            // Rate limit headers (X-RateLimit-*)
+            const rateLimitLimit = response.headers.get('x-ratelimit-limit');
+            const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
+            const rateLimitReset = response.headers.get('x-ratelimit-reset');
+
+            if (rateLimitLimit && rateLimitRemaining) {
+                this._rateLimit = {
+                    limit: parseInt(rateLimitLimit, 10),
+                    remaining: parseInt(rateLimitRemaining, 10),
+                    reset: rateLimitReset ? parseInt(rateLimitReset, 10) : undefined,
+                };
+            }
+
+            // Usage warning header
+            this._usageWarning = response.headers.get('x-usage-warning');
 
             // Handle error responses
             if (!response.ok) {
                 const errorBody = await response.json().catch(() => ({})) as ApiError;
-                this.handleErrorResponse(response.status, errorBody);
+                this.handleErrorResponse(response.status, errorBody, response.headers);
             }
 
             return await response.json() as T;
@@ -261,24 +301,35 @@ export class SafeNest {
     /**
      * Handle error responses from the API
      */
-    private handleErrorResponse(status: number, body: ApiError): never {
+    private handleErrorResponse(status: number, body: ApiError, headers: Headers): never {
         const message = body.error?.message || 'Unknown error';
+        const code = body.error?.code;
         const details = body.error?.details;
+        const suggestion = body.error?.suggestion;
+        const links = body.error?.links;
 
         switch (status) {
             case 400:
-                throw new ValidationError(message, details);
+                throw new ValidationError(message, details, { code, suggestion, links });
             case 401:
-                throw new AuthenticationError(message);
+                throw new AuthenticationError(message, { code, suggestion, links });
+            case 403:
+                throw new SafeNestError(message, status, details, { code, suggestion, links });
             case 404:
-                throw new NotFoundError(message);
-            case 429:
-                throw new RateLimitError(message);
+                throw new NotFoundError(message, { code, suggestion, links });
+            case 429: {
+                const retryAfter = headers.get('retry-after');
+                throw new RateLimitError(
+                    message,
+                    retryAfter ? parseInt(retryAfter, 10) : undefined,
+                    { code, suggestion, links }
+                );
+            }
             default:
                 if (status >= 500) {
-                    throw new ServerError(message, status);
+                    throw new ServerError(message, status, { code, suggestion, links });
                 }
-                throw new SafeNestError(message, status, details);
+                throw new SafeNestError(message, status, details, { code, suggestion, links });
         }
     }
 
@@ -687,6 +738,92 @@ export class SafeNest {
             'PUT',
             '/api/v1/policy',
             { config }
+        );
+    }
+
+    // =========================================================================
+    // Batch Methods
+    // =========================================================================
+
+    /**
+     * Analyze multiple items in a single batch request
+     *
+     * @example
+     * ```typescript
+     * const result = await safenest.batch({
+     *   items: [
+     *     { type: 'bullying', content: 'Message 1' },
+     *     { type: 'unsafe', content: 'Message 2' },
+     *   ],
+     *   parallel: true
+     * })
+     *
+     * console.log('Success:', result.summary.successful)
+     * console.log('Failed:', result.summary.failed)
+     * ```
+     */
+    async batch(input: BatchAnalyzeInput): Promise<BatchAnalyzeResult> {
+        if (!input.items || input.items.length === 0) {
+            throw new ValidationError('Items array is required and cannot be empty');
+        }
+        if (input.items.length > 25) {
+            throw new ValidationError('Maximum 25 items per batch request');
+        }
+
+        return this.requestWithRetry<BatchAnalyzeResult>(
+            'POST',
+            '/api/v1/batch/analyze',
+            {
+                items: input.items.map(item => ({
+                    type: item.type,
+                    text: item.content,
+                    context: this.normalizeContext(item.context),
+                    external_id: item.external_id,
+                })),
+                options: {
+                    parallel: input.parallel ?? true,
+                    continue_on_error: input.continueOnError ?? true,
+                },
+            }
+        );
+    }
+
+    // =========================================================================
+    // Usage Methods
+    // =========================================================================
+
+    /**
+     * Get usage summary for the current billing period
+     *
+     * @example
+     * ```typescript
+     * const summary = await safenest.getUsageSummary()
+     * console.log('Used:', summary.messages_used)
+     * console.log('Limit:', summary.message_limit)
+     * console.log('Percent:', summary.usage_percentage)
+     * ```
+     */
+    async getUsageSummary(): Promise<UsageSummary> {
+        return this.requestWithRetry<UsageSummary>(
+            'GET',
+            '/api/v1/usage/summary'
+        );
+    }
+
+    /**
+     * Get current rate limit quota status
+     *
+     * @example
+     * ```typescript
+     * const quota = await safenest.getQuota()
+     * console.log('Rate limit:', quota.rate_limit)
+     * console.log('Remaining this minute:', quota.remaining)
+     * ```
+     */
+    async getQuota(): Promise<UsageQuota> {
+        return this.requestWithRetry<UsageQuota>(
+            'GET',
+            '/api/v1/usage/quota'
         );
     }
 }
