@@ -4,6 +4,7 @@ export * from './analysis.js';
 export * from './guidance.js';
 export * from './reports.js';
 export * from './policy.js';
+export * from './account.js';
 
 // =============================================================================
 // Common Types

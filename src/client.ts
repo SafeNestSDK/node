@@ -31,6 +31,9 @@ import {
     // Batch types
     BatchAnalyzeInput,
     BatchAnalyzeResult,
+    // Account types
+    AccountDeletionResult,
+    AccountExportResult,
 } from './types/index.js';
 
 import {
@@ -211,7 +214,7 @@ export class SafeNest {
      * Make an authenticated request to the API
      */
     private async request<T>(
-        method: 'GET' | 'POST' | 'PUT',
+        method: 'GET' | 'POST' | 'PUT' | 'DELETE',
         path: string,
         body?: unknown
     ): Promise<T> {
@@ -337,7 +340,7 @@ export class SafeNest {
      * Make a request with retry logic
      */
     private async requestWithRetry<T>(
-        method: 'GET' | 'POST' | 'PUT',
+        method: 'GET' | 'POST' | 'PUT' | 'DELETE',
         path: string,
         body?: unknown
     ): Promise<T> {
@@ -835,6 +838,50 @@ export class SafeNest {
         return this.requestWithRetry<UsageQuota>(
             'GET',
             '/api/v1/usage/quota'
+        );
+    }
+
+    // =========================================================================
+    // Account Management (GDPR)
+    // =========================================================================
+
+    /**
+     * Delete all data associated with your account (GDPR Article 17 — Right to Erasure)
+     *
+     * This permanently deletes all user data including API keys, usage logs,
+     * incidents, emotional records, grooming assessments, and safety goals.
+     *
+     * @example
+     * ```typescript
+     * const result = await safenest.deleteAccountData()
+     * console.log(result.message)        // "All user data has been deleted"
+     * console.log(result.deleted_count)  // 42
+     * ```
+     */
+    async deleteAccountData(): Promise<AccountDeletionResult> {
+        return this.requestWithRetry<AccountDeletionResult>(
+            'DELETE',
+            '/api/v1/account/data'
+        );
+    }
+
+    /**
+     * Export all data associated with your account (GDPR Article 20 — Right to Data Portability)
+     *
+     * Returns a JSON export of all stored data grouped by collection.
+     *
+     * @example
+     * ```typescript
+     * const data = await safenest.exportAccountData()
+     * console.log(data.userId)
+     * console.log(data.exportedAt)
+     * console.log(Object.keys(data.data))  // ['api_keys', 'incidents', ...]
+     * ```
+     */
+    async exportAccountData(): Promise<AccountExportResult> {
+        return this.requestWithRetry<AccountExportResult>(
+            'GET',
+            '/api/v1/account/export'
         );
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@safenest/sdk",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "TypeScript SDK for SafeNest AI child safety API - Detect bullying, grooming, and unsafe content",
   "type": "module",
   "main": "./dist/index.js",

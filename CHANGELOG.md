@@ -52,13 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Nothing yet
+- `deleteAccountData()` — Delete all account data (GDPR Article 17 — Right to Erasure)
+- `exportAccountData()` — Export all account data as JSON (GDPR Article 20 — Right to Data Portability)
+- `AccountDeletionResult` and `AccountExportResult` types
 
 ### Changed
-- Nothing yet
-
-### Fixed
-- Nothing yet
-
-### Security
-- Nothing yet
+- PII redaction is now **enabled by default** on the API (opt-out instead of opt-in)

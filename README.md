@@ -331,6 +331,34 @@ await safenest.setPolicy({
 
 ---
 
+### Account Management (GDPR)
+
+#### `deleteAccountData()`
+
+Permanently delete all data associated with your account (Right to Erasure, GDPR Article 17).
+
+```typescript
+const result = await safenest.deleteAccountData()
+
+console.log(result.message)        // "All user data has been deleted"
+console.log(result.deleted_count)  // 42
+```
+
+#### `exportAccountData()`
+
+Export all data associated with your account as JSON (Right to Data Portability, GDPR Article 20).
+
+```typescript
+const data = await safenest.exportAccountData()
+
+console.log(data.userId)                    // 'user_123'
+console.log(data.exportedAt)                // '2026-02-11T...'
+console.log(Object.keys(data.data))         // ['api_keys', 'incidents', ...]
+console.log(data.data.incidents.length)     // 5
+```
+
+---
+
 ## Usage Tracking
 
 The SDK automatically captures usage metadata from API responses:
@@ -422,6 +450,10 @@ import type {
   AnalyzeEmotionsInput,
   GetActionPlanInput,
   GenerateReportInput,
+
+  // Account (GDPR)
+  AccountDeletionResult,
+  AccountExportResult,
 
   // Utilities
   Usage,
@@ -612,6 +644,31 @@ Rate limits depend on your subscription tier:
 | **Pro** | $99/mo | 100,000 | Advanced AI, All SDKs, Edge network (sub-100ms), Real-time analytics |
 | **Business** | $199/mo | 250,000 | Everything in Pro + 5 team seats, Custom webhooks, SSO, 99.9% SLA |
 | **Enterprise** | Custom | Unlimited | Custom AI training, Dedicated infrastructure, 24/7 support, SOC 2 |
+
+---
+
+## Best Practices
+
+### Message Batching
+
+The **bullying** and **unsafe content** methods analyze a single `text` field per request. If your platform receives messages one at a time (e.g., a chat app), concatenate a **sliding window of recent messages** into one string before calling the API. Single words or short fragments lack context for accurate detection and can be exploited to bypass safety filters.
+
+```typescript
+// Bad — each message analyzed in isolation, easily evaded
+for (const msg of messages) {
+  await client.detectBullying({ text: msg });
+}
+
+// Good — recent messages analyzed together
+const window = recentMessages.slice(-10).join(' ');
+await client.detectBullying({ text: window });
+```
+
+The **grooming** method already accepts a `messages[]` array and analyzes the full conversation in context.
+
+### PII Redaction
+
+PII redaction is **enabled by default** on the SafeNest API. It automatically strips emails, phone numbers, URLs, social handles, IPs, and other PII from detection summaries and webhook payloads. The original text is still analyzed in full — only stored outputs are scrubbed. Set `PII_REDACTION_ENABLED=false` to disable.
 
 ---
 

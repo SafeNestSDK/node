@@ -79,6 +79,10 @@ export type {
     EmotionMonitoringConfig,
     IncidentReportingConfig,
 
+    // Account types (GDPR)
+    AccountDeletionResult,
+    AccountExportResult,
+
     // Legacy type aliases (backwards compatibility)
     DetectBullyingRequest,
     DetectBullyingResponse,
