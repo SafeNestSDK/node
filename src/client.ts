@@ -49,6 +49,27 @@ import {
     BreachResult,
     UpdateBreachInput,
     GetBreachesOptions,
+    // Media types
+    AnalyzeVoiceInput,
+    VoiceAnalysisResult,
+    AnalyzeImageInput,
+    ImageAnalysisResult,
+    // Webhook types
+    WebhookListResult,
+    CreateWebhookInput,
+    CreateWebhookResult,
+    UpdateWebhookInput,
+    UpdateWebhookResult,
+    DeleteWebhookResult,
+    TestWebhookResult,
+    RegenerateSecretResult,
+    // Pricing types
+    PricingResult,
+    PricingDetailsResult,
+    // Usage types
+    UsageHistoryResult,
+    UsageByToolResult,
+    UsageMonthlyResult,
 } from './types/index.js';
 
 import {
@@ -216,15 +237,29 @@ export class Tuteliq {
         }
     }
 
+    private static readonly SDK_IDENTIFIER = 'Node SDK';
+
+    /**
+     * Resolves the platform string by appending the SDK identifier.
+     * - "MyApp" → "MyApp - Node SDK"
+     * - undefined → "Node SDK"
+     */
+    private static resolvePlatform(platform?: string): string {
+        if (platform && platform.length > 0) {
+            return `${platform} - ${Tuteliq.SDK_IDENTIFIER}`;
+        }
+        return Tuteliq.SDK_IDENTIFIER;
+    }
+
     /**
      * Normalize context input to API format
      */
-    private normalizeContext(context?: ContextInput): Record<string, unknown> | undefined {
-        if (!context) return undefined;
+    private normalizeContext(context?: ContextInput): Record<string, unknown> {
+        if (!context) return { platform: Tuteliq.resolvePlatform() };
         if (typeof context === 'string') {
-            return { platform: context };
+            return { platform: Tuteliq.resolvePlatform(context) };
         }
-        return context;
+        return { ...context, platform: Tuteliq.resolvePlatform(context.platform) };
     }
 
     /**
@@ -383,6 +418,99 @@ export class Tuteliq {
                 initialDelay: this.retryDelay,
             }
         );
+    }
+
+    /**
+     * Make an authenticated multipart request to the API
+     */
+    private async multipartRequest<T>(path: string, formData: FormData): Promise<T> {
+        const url = `${API_BASE_URL}${path}`;
+        const startTime = Date.now();
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.apiKey}`,
+                },
+                body: formData,
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+            this._lastLatencyMs = Date.now() - startTime;
+
+            // Extract metadata from headers
+            this._lastRequestId = response.headers.get('x-request-id');
+
+            const monthlyLimit = response.headers.get('x-monthly-limit');
+            const monthlyUsed = response.headers.get('x-monthly-used');
+            const monthlyRemaining = response.headers.get('x-monthly-remaining');
+
+            if (monthlyLimit && monthlyUsed && monthlyRemaining) {
+                this._usage = {
+                    limit: parseInt(monthlyLimit, 10),
+                    used: parseInt(monthlyUsed, 10),
+                    remaining: parseInt(monthlyRemaining, 10),
+                };
+            }
+
+            const rateLimitLimit = response.headers.get('x-ratelimit-limit');
+            const rateLimitRemaining = response.headers.get('x-ratelimit-remaining');
+            const rateLimitReset = response.headers.get('x-ratelimit-reset');
+
+            if (rateLimitLimit && rateLimitRemaining) {
+                this._rateLimit = {
+                    limit: parseInt(rateLimitLimit, 10),
+                    remaining: parseInt(rateLimitRemaining, 10),
+                    reset: rateLimitReset ? parseInt(rateLimitReset, 10) : undefined,
+                };
+            }
+
+            this._usageWarning = response.headers.get('x-usage-warning');
+
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => ({})) as ApiError;
+                this.handleErrorResponse(response.status, errorBody, response.headers);
+            }
+
+            return await response.json() as T;
+        } catch (error) {
+            clearTimeout(timeoutId);
+            this._lastLatencyMs = Date.now() - startTime;
+
+            if (error instanceof TuteliqError) {
+                throw error;
+            }
+
+            if (error instanceof Error) {
+                if (error.name === 'AbortError') {
+                    throw new TimeoutError(`Request timed out after ${this.timeout}ms`);
+                }
+
+                if (
+                    error instanceof TypeError ||
+                    error.name === 'TypeError' ||
+                    error.message.includes('fetch') ||
+                    error.message.includes('network') ||
+                    error.message.includes('ECONNREFUSED') ||
+                    error.message.includes('ECONNRESET') ||
+                    error.message.includes('ENOTFOUND') ||
+                    error.message.includes('ERR_NETWORK') ||
+                    error.message.includes('Failed to fetch') ||
+                    error.message.includes('Network request failed')
+                ) {
+                    throw new NetworkError(error.message);
+                }
+            }
+
+            throw new TuteliqError(
+                error instanceof Error ? error.message : 'Unknown error occurred'
+            );
+        }
     }
 
     // =========================================================================
@@ -1123,6 +1251,350 @@ export class Tuteliq {
             'PATCH',
             `/api/v1/admin/breach/${id}`,
             input
+        );
+    }
+
+    // =========================================================================
+    // Media Analysis Methods
+    // =========================================================================
+
+    /**
+     * Analyze voice/audio for safety concerns
+     *
+     * Transcribes the audio via Whisper, then runs safety analysis on the transcript.
+     *
+     * @example
+     * ```typescript
+     * import { readFileSync } from 'fs'
+     *
+     * const result = await tuteliq.analyzeVoice({
+     *   file: readFileSync('recording.mp3'),
+     *   filename: 'recording.mp3',
+     *   analysisType: 'all'
+     * })
+     *
+     * console.log('Transcript:', result.transcription.text)
+     * console.log('Risk:', result.overall_severity)
+     * ```
+     */
+    async analyzeVoice(input: AnalyzeVoiceInput): Promise<VoiceAnalysisResult> {
+        if (!input.file) {
+            throw new ValidationError('Audio file is required');
+        }
+        if (!input.filename) {
+            throw new ValidationError('Filename is required');
+        }
+
+        const formData = new FormData();
+
+        if (Buffer.isBuffer(input.file)) {
+            formData.append('file', new Blob([input.file as unknown as BlobPart]), input.filename);
+        } else {
+            formData.append('file', input.file, input.filename);
+        }
+
+        if (input.analysisType) formData.append('analysis_type', input.analysisType);
+        if (input.fileId) formData.append('file_id', input.fileId);
+        if (input.external_id) formData.append('external_id', input.external_id);
+        if (input.customer_id) formData.append('customer_id', input.customer_id);
+        if (input.ageGroup) formData.append('age_group', input.ageGroup);
+        if (input.language) formData.append('language', input.language);
+        formData.append('platform', Tuteliq.resolvePlatform(input.platform));
+        if (input.childAge != null) formData.append('child_age', String(input.childAge));
+        if (input.metadata) formData.append('metadata', JSON.stringify(input.metadata));
+
+        return withRetry(
+            () => this.multipartRequest<VoiceAnalysisResult>(
+                '/api/v1/safety/voice',
+                formData
+            ),
+            { maxRetries: this.retries, initialDelay: this.retryDelay }
+        );
+    }
+
+    /**
+     * Analyze an image for safety concerns
+     *
+     * Uses vision AI for visual content classification and OCR text extraction,
+     * then runs safety analysis on any extracted text.
+     *
+     * @example
+     * ```typescript
+     * import { readFileSync } from 'fs'
+     *
+     * const result = await tuteliq.analyzeImage({
+     *   file: readFileSync('screenshot.png'),
+     *   filename: 'screenshot.png',
+     *   analysisType: 'all'
+     * })
+     *
+     * console.log('Visual:', result.vision.visual_description)
+     * console.log('OCR text:', result.vision.extracted_text)
+     * console.log('Risk:', result.overall_severity)
+     * ```
+     */
+    async analyzeImage(input: AnalyzeImageInput): Promise<ImageAnalysisResult> {
+        if (!input.file) {
+            throw new ValidationError('Image file is required');
+        }
+        if (!input.filename) {
+            throw new ValidationError('Filename is required');
+        }
+
+        const formData = new FormData();
+
+        if (Buffer.isBuffer(input.file)) {
+            formData.append('file', new Blob([input.file as unknown as BlobPart]), input.filename);
+        } else {
+            formData.append('file', input.file, input.filename);
+        }
+
+        if (input.analysisType) formData.append('analysis_type', input.analysisType);
+        if (input.fileId) formData.append('file_id', input.fileId);
+        if (input.external_id) formData.append('external_id', input.external_id);
+        if (input.customer_id) formData.append('customer_id', input.customer_id);
+        if (input.ageGroup) formData.append('age_group', input.ageGroup);
+        formData.append('platform', Tuteliq.resolvePlatform(input.platform));
+        if (input.metadata) formData.append('metadata', JSON.stringify(input.metadata));
+
+        return withRetry(
+            () => this.multipartRequest<ImageAnalysisResult>(
+                '/api/v1/safety/image',
+                formData
+            ),
+            { maxRetries: this.retries, initialDelay: this.retryDelay }
+        );
+    }
+
+    // =========================================================================
+    // Webhook Methods
+    // =========================================================================
+
+    /**
+     * List all webhooks for your account
+     *
+     * @example
+     * ```typescript
+     * const { webhooks } = await tuteliq.listWebhooks()
+     * webhooks.forEach(w => console.log(w.name, w.is_active))
+     * ```
+     */
+    async listWebhooks(): Promise<WebhookListResult> {
+        return this.requestWithRetry<WebhookListResult>(
+            'GET',
+            '/api/v1/webhooks'
+        );
+    }
+
+    /**
+     * Create a new webhook
+     *
+     * The returned `secret` is only shown once — store it securely for
+     * signature verification.
+     *
+     * @example
+     * ```typescript
+     * import { WebhookEventType } from '@tuteliq/sdk'
+     *
+     * const result = await tuteliq.createWebhook({
+     *   name: 'Safety Alerts',
+     *   url: 'https://example.com/webhooks/tuteliq',
+     *   events: [WebhookEventType.INCIDENT_CRITICAL, WebhookEventType.GROOMING_DETECTED]
+     * })
+     *
+     * console.log('Secret:', result.secret) // Store this securely!
+     * ```
+     */
+    async createWebhook(input: CreateWebhookInput): Promise<CreateWebhookResult> {
+        return this.requestWithRetry<CreateWebhookResult>(
+            'POST',
+            '/api/v1/webhooks',
+            {
+                name: input.name,
+                url: input.url,
+                events: input.events,
+                ...(input.headers && { headers: input.headers }),
+            }
+        );
+    }
+
+    /**
+     * Update an existing webhook
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.updateWebhook('webhook-123', {
+     *   name: 'Updated Name',
+     *   isActive: false
+     * })
+     * ```
+     */
+    async updateWebhook(id: string, input: UpdateWebhookInput): Promise<UpdateWebhookResult> {
+        return this.requestWithRetry<UpdateWebhookResult>(
+            'PUT',
+            `/api/v1/webhooks/${id}`,
+            {
+                ...(input.name !== undefined && { name: input.name }),
+                ...(input.url !== undefined && { url: input.url }),
+                ...(input.events !== undefined && { events: input.events }),
+                ...(input.isActive !== undefined && { is_active: input.isActive }),
+                ...(input.headers !== undefined && { headers: input.headers }),
+            }
+        );
+    }
+
+    /**
+     * Delete a webhook
+     *
+     * @example
+     * ```typescript
+     * await tuteliq.deleteWebhook('webhook-123')
+     * ```
+     */
+    async deleteWebhook(id: string): Promise<DeleteWebhookResult> {
+        return this.requestWithRetry<DeleteWebhookResult>(
+            'DELETE',
+            `/api/v1/webhooks/${id}`
+        );
+    }
+
+    /**
+     * Send a test payload to a webhook
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.testWebhook('webhook-123')
+     * console.log('Success:', result.success)
+     * console.log('Latency:', result.latency_ms, 'ms')
+     * ```
+     */
+    async testWebhook(id: string): Promise<TestWebhookResult> {
+        return this.requestWithRetry<TestWebhookResult>(
+            'POST',
+            '/api/v1/webhooks/test',
+            { webhook_id: id }
+        );
+    }
+
+    /**
+     * Regenerate a webhook's signing secret
+     *
+     * The old secret is immediately invalidated.
+     *
+     * @example
+     * ```typescript
+     * const { secret } = await tuteliq.regenerateWebhookSecret('webhook-123')
+     * // Update your verification logic with the new secret
+     * ```
+     */
+    async regenerateWebhookSecret(id: string): Promise<RegenerateSecretResult> {
+        return this.requestWithRetry<RegenerateSecretResult>(
+            'POST',
+            `/api/v1/webhooks/${id}/regenerate-secret`
+        );
+    }
+
+    // =========================================================================
+    // Pricing Methods
+    // =========================================================================
+
+    /**
+     * Get public pricing plans (no authentication required)
+     *
+     * @example
+     * ```typescript
+     * const { plans } = await tuteliq.getPricing()
+     * plans.forEach(p => console.log(p.name, p.price))
+     * ```
+     */
+    async getPricing(): Promise<PricingResult> {
+        return this.requestWithRetry<PricingResult>(
+            'GET',
+            '/api/v1/pricing'
+        );
+    }
+
+    /**
+     * Get detailed pricing plans with monthly/yearly prices
+     *
+     * @example
+     * ```typescript
+     * const { plans } = await tuteliq.getPricingDetails()
+     * plans.forEach(p => console.log(p.name, p.price_monthly, p.api_calls_per_month))
+     * ```
+     */
+    async getPricingDetails(): Promise<PricingDetailsResult> {
+        return this.requestWithRetry<PricingDetailsResult>(
+            'GET',
+            '/api/v1/pricing/details'
+        );
+    }
+
+    // =========================================================================
+    // Additional Usage Methods
+    // =========================================================================
+
+    /**
+     * Get usage history for the past N days
+     *
+     * @param days - Number of days (1-30, defaults to 7)
+     *
+     * @example
+     * ```typescript
+     * const { days } = await tuteliq.getUsageHistory(14)
+     * days.forEach(d => console.log(d.date, d.total_requests))
+     * ```
+     */
+    async getUsageHistory(days?: number): Promise<UsageHistoryResult> {
+        const params = new URLSearchParams();
+        if (days != null) params.set('days', String(days));
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.requestWithRetry<UsageHistoryResult>(
+            'GET',
+            `/api/v1/usage/history${query}`
+        );
+    }
+
+    /**
+     * Get usage broken down by tool/endpoint
+     *
+     * @param date - Date in YYYY-MM-DD format (defaults to today)
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.getUsageByTool()
+     * console.log('Tools:', result.tools)
+     * console.log('Endpoints:', result.endpoints)
+     * ```
+     */
+    async getUsageByTool(date?: string): Promise<UsageByToolResult> {
+        const params = new URLSearchParams();
+        if (date) params.set('date', date);
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.requestWithRetry<UsageByToolResult>(
+            'GET',
+            `/api/v1/usage/by-tool${query}`
+        );
+    }
+
+    /**
+     * Get monthly usage, limits, and upgrade recommendations
+     *
+     * @example
+     * ```typescript
+     * const monthly = await tuteliq.getUsageMonthly()
+     * console.log('Used:', monthly.usage.used, '/', monthly.usage.limit)
+     * console.log('Days left:', monthly.billing.days_remaining)
+     *
+     * if (monthly.recommendations?.should_upgrade) {
+     *   console.log('Consider upgrading to', monthly.recommendations.suggested_tier)
+     * }
+     * ```
+     */
+    async getUsageMonthly(): Promise<UsageMonthlyResult> {
+        return this.requestWithRetry<UsageMonthlyResult>(
+            'GET',
+            '/api/v1/usage/monthly'
         );
     }
 }

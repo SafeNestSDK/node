@@ -35,6 +35,8 @@ Tuteliq provides AI-powered content analysis to help protect children in digital
 - **Bullying Detection** — Identify verbal abuse, exclusion, and harassment patterns
 - **Grooming Risk Analysis** — Detect predatory behavior across conversation threads
 - **Unsafe Content Detection** — Flag self-harm, violence, hate speech, and age-inappropriate content
+- **Voice Analysis** — Transcribe audio and run safety analysis on the transcript with timestamped segments
+- **Image Analysis** — Visual safety classification with OCR text extraction and text safety analysis
 - **Emotional State Analysis** — Understand emotional signals and concerning trends
 - **Action Guidance** — Generate age-appropriate response recommendations
 - **Incident Reports** — Create professional summaries for review
@@ -232,6 +234,58 @@ console.log(result.recommended_action) // Combined recommendation
 
 ---
 
+### Media Analysis
+
+#### `analyzeVoice(input)`
+
+Transcribes audio and runs safety analysis on the transcript. Accepts `Buffer` or file data.
+
+```typescript
+import { readFileSync } from 'fs'
+
+const result = await tuteliq.analyzeVoice({
+  file: readFileSync('./recording.mp3'),
+  filename: 'recording.mp3',
+  analysisType: 'all',           // 'bullying' | 'unsafe' | 'grooming' | 'emotions' | 'all'
+  ageGroup: '11-13',
+  fileId: 'my-file-ref-123',    // Optional: echoed in response
+})
+
+console.log(result.transcription.text)       // Full transcript
+console.log(result.transcription.segments)   // Timestamped segments
+console.log(result.analysis?.bullying)       // Bullying analysis on transcript
+console.log(result.overall_risk_score)       // 0.0 - 1.0
+console.log(result.overall_severity)         // 'none' | 'low' | 'medium' | 'high' | 'critical'
+```
+
+Supported audio formats: mp3, wav, m4a, ogg, flac, webm, mp4 (max 25MB).
+
+#### `analyzeImage(input)`
+
+Analyzes images for visual safety concerns and extracts text via OCR. If text is found, runs text safety analysis.
+
+```typescript
+import { readFileSync } from 'fs'
+
+const result = await tuteliq.analyzeImage({
+  file: readFileSync('./screenshot.png'),
+  filename: 'screenshot.png',
+  analysisType: 'all',           // 'bullying' | 'unsafe' | 'emotions' | 'all'
+  fileId: 'img-ref-456',        // Optional: echoed in response
+})
+
+console.log(result.vision.extracted_text)       // OCR text
+console.log(result.vision.visual_severity)      // Visual content severity
+console.log(result.vision.visual_categories)    // Visual harm categories
+console.log(result.text_analysis?.bullying)     // Text safety analysis (if OCR found text)
+console.log(result.overall_risk_score)          // 0.0 - 1.0
+console.log(result.overall_severity)            // Combined severity
+```
+
+Supported image formats: png, jpg, jpeg, gif, webp (max 10MB).
+
+---
+
 ### Emotional Analysis
 
 #### `analyzeEmotions(input)`
@@ -307,6 +361,101 @@ console.log(report.recommended_next_steps)   // ['Document incident', ...]
 
 ---
 
+### Webhooks
+
+#### `listWebhooks()`
+
+List all webhooks for your account.
+
+```typescript
+const { webhooks } = await tuteliq.listWebhooks()
+webhooks.forEach(w => console.log(w.name, w.is_active, w.events))
+```
+
+#### `createWebhook(input)`
+
+Create a new webhook. The returned `secret` is only shown once — store it securely.
+
+```typescript
+import { WebhookEventType } from '@tuteliq/sdk'
+
+const result = await tuteliq.createWebhook({
+  name: 'Safety Alerts',
+  url: 'https://example.com/webhooks/tuteliq',
+  events: [
+    WebhookEventType.INCIDENT_CRITICAL,
+    WebhookEventType.GROOMING_DETECTED,
+    WebhookEventType.SELF_HARM_DETECTED
+  ]
+})
+
+console.log('Webhook ID:', result.id)
+console.log('Secret:', result.secret) // Store this securely!
+```
+
+#### `updateWebhook(id, input)`
+
+Update an existing webhook.
+
+```typescript
+await tuteliq.updateWebhook('webhook-123', {
+  name: 'Updated Name',
+  isActive: false,
+  events: [WebhookEventType.INCIDENT_CRITICAL]
+})
+```
+
+#### `deleteWebhook(id)`
+
+```typescript
+await tuteliq.deleteWebhook('webhook-123')
+```
+
+#### `testWebhook(id)`
+
+Send a test payload to verify webhook delivery.
+
+```typescript
+const result = await tuteliq.testWebhook('webhook-123')
+console.log('Success:', result.success)
+console.log('Latency:', result.latency_ms, 'ms')
+```
+
+#### `regenerateWebhookSecret(id)`
+
+Regenerate the signing secret. The old secret is immediately invalidated.
+
+```typescript
+const { secret } = await tuteliq.regenerateWebhookSecret('webhook-123')
+// Update your verification logic with the new secret
+```
+
+---
+
+### Pricing
+
+#### `getPricing()`
+
+Get public pricing plans (no authentication required).
+
+```typescript
+const { plans } = await tuteliq.getPricing()
+plans.forEach(p => console.log(p.name, p.price, p.features))
+```
+
+#### `getPricingDetails()`
+
+Get detailed pricing plans with monthly/yearly prices and rate limits.
+
+```typescript
+const { plans } = await tuteliq.getPricingDetails()
+plans.forEach(p => {
+  console.log(p.name, `$${p.price_monthly}/mo`, `${p.api_calls_per_month} calls/mo`)
+})
+```
+
+---
+
 ### Policy Configuration
 
 #### `getPolicy()` / `setPolicy(config)`
@@ -377,6 +526,63 @@ console.log(tuteliq.lastRequestId)   // 'req_1a2b3c...'
 console.log(tuteliq.lastLatencyMs)   // 145
 ```
 
+### Usage API Methods
+
+#### `getUsageSummary()`
+
+Get usage summary for the current billing period.
+
+```typescript
+const summary = await tuteliq.getUsageSummary()
+console.log('Used:', summary.messages_used)
+console.log('Limit:', summary.message_limit)
+console.log('Percent:', summary.usage_percentage)
+```
+
+#### `getQuota()`
+
+Get current rate limit quota status.
+
+```typescript
+const quota = await tuteliq.getQuota()
+console.log('Rate limit:', quota.rate_limit, '/min')
+console.log('Remaining:', quota.remaining)
+```
+
+#### `getUsageHistory(days?)`
+
+Get daily usage history for the past N days (1-30, defaults to 7).
+
+```typescript
+const { days } = await tuteliq.getUsageHistory(14)
+days.forEach(d => console.log(d.date, d.total_requests, d.success_requests))
+```
+
+#### `getUsageByTool(date?)`
+
+Get usage broken down by tool/endpoint.
+
+```typescript
+const result = await tuteliq.getUsageByTool()
+console.log('Tools:', result.tools)       // { detectBullying: 150, detectGrooming: 45, ... }
+console.log('Endpoints:', result.endpoints) // { '/api/v1/safety/bullying': 150, ... }
+```
+
+#### `getUsageMonthly()`
+
+Get monthly usage, billing info, and upgrade recommendations.
+
+```typescript
+const monthly = await tuteliq.getUsageMonthly()
+console.log('Tier:', monthly.tier_display_name)
+console.log('Used:', monthly.usage.used, '/', monthly.usage.limit)
+console.log('Days left:', monthly.billing.days_remaining)
+
+if (monthly.recommendations?.should_upgrade) {
+  console.log('Consider upgrading to:', monthly.recommendations.suggested_tier)
+}
+```
+
 ---
 
 ## Error Handling
@@ -444,7 +650,7 @@ Full TypeScript support with comprehensive type definitions:
 ```typescript
 import { Tuteliq } from '@tuteliq/sdk'
 import type {
-  // Results
+  // Safety Results
   BullyingResult,
   GroomingResult,
   UnsafeResult,
@@ -453,6 +659,31 @@ import type {
   ReportResult,
   AnalyzeResult,
 
+  // Media Results
+  VoiceAnalysisResult,
+  ImageAnalysisResult,
+  VisionResult,
+  TranscriptionResult,
+  TranscriptionSegment,
+
+  // Webhook Types
+  Webhook,
+  WebhookListResult,
+  CreateWebhookInput,
+  CreateWebhookResult,
+  UpdateWebhookInput,
+  TestWebhookResult,
+  RegenerateSecretResult,
+
+  // Pricing Types
+  PricingResult,
+  PricingDetailsResult,
+
+  // Usage Types
+  UsageHistoryResult,
+  UsageByToolResult,
+  UsageMonthlyResult,
+
   // Inputs
   DetectBullyingInput,
   DetectGroomingInput,
@@ -460,6 +691,8 @@ import type {
   AnalyzeEmotionsInput,
   GetActionPlanInput,
   GenerateReportInput,
+  AnalyzeVoiceInput,
+  AnalyzeImageInput,
 
   // Account (GDPR)
   AccountDeletionResult,
@@ -485,7 +718,9 @@ import {
   RiskLevel,
   RiskCategory,
   AnalysisType,
+  ContentSeverity,
   EmotionTrend,
+  WebhookEventType,
   IncidentStatus,
   ErrorCode,
 } from '@tuteliq/sdk'

@@ -5,6 +5,9 @@ export * from './guidance.js';
 export * from './reports.js';
 export * from './policy.js';
 export * from './account.js';
+export * from './media.js';
+export * from './webhooks.js';
+export * from './pricing.js';
 
 // =============================================================================
 // Common Types
@@ -101,6 +104,74 @@ export interface UsageQuota {
     reset_in_seconds: number;
     /** Current tier */
     tier: string;
+}
+
+/** A single day's usage data. */
+export interface UsageDay {
+    /** Date in YYYY-MM-DD format */
+    date: string;
+    /** Total requests on this day */
+    total_requests: number;
+    /** Successful requests */
+    success_requests: number;
+    /** Failed requests */
+    error_requests: number;
+}
+
+/** Result from `GET /api/v1/usage/history`. */
+export interface UsageHistoryResult {
+    /** API key ID */
+    api_key_id: string;
+    /** Daily usage data */
+    days: UsageDay[];
+}
+
+/** Result from `GET /api/v1/usage/by-tool`. */
+export interface UsageByToolResult {
+    /** Date in YYYY-MM-DD format */
+    date: string;
+    /** Request counts per tool */
+    tools: Record<string, number>;
+    /** Request counts per endpoint */
+    endpoints: Record<string, number>;
+}
+
+/** Result from `GET /api/v1/usage/monthly`. */
+export interface UsageMonthlyResult {
+    /** Current tier */
+    tier: string;
+    /** Tier display name */
+    tier_display_name: string;
+    /** Billing period info */
+    billing: {
+        current_period_start: string;
+        current_period_end: string;
+        days_remaining: number;
+    };
+    /** Monthly usage stats */
+    usage: {
+        used: number;
+        limit: number;
+        remaining: number;
+        percent_used: number;
+    };
+    /** Rate limit info */
+    rate_limit: {
+        requests_per_minute: number;
+    };
+    /** Upgrade recommendations (null if not applicable) */
+    recommendations: {
+        should_upgrade: boolean;
+        reason: string;
+        suggested_tier: string;
+        upgrade_url: string;
+    } | null;
+    /** Useful links */
+    links: {
+        dashboard: string;
+        pricing: string;
+        buy_credits: string;
+    };
 }
 
 // =============================================================================

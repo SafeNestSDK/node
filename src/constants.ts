@@ -57,6 +57,20 @@ export enum AnalysisType {
     GROOMING = 'grooming',
     UNSAFE = 'unsafe',
     EMOTIONS = 'emotions',
+    VOICE = 'voice',
+    IMAGE = 'image',
+}
+
+/**
+ * Content severity levels — includes `NONE` for media analysis results
+ * where no safety concern is found (visual or overall).
+ */
+export enum ContentSeverity {
+    NONE = 'none',
+    LOW = 'low',
+    MEDIUM = 'medium',
+    HIGH = 'high',
+    CRITICAL = 'critical',
 }
 
 /**

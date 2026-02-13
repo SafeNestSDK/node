@@ -81,6 +81,40 @@ export type {
     EmotionMonitoringConfig,
     IncidentReportingConfig,
 
+    // Media types
+    AnalyzeVoiceInput,
+    VoiceAnalysisResult,
+    TranscriptionResult,
+    TranscriptionSegment,
+    AnalyzeImageInput,
+    ImageAnalysisResult,
+    VisionResult,
+
+    // Webhook types
+    Webhook,
+    WebhookListResult,
+    CreateWebhookInput,
+    CreateWebhookResult,
+    UpdateWebhookInput,
+    UpdateWebhookResult,
+    DeleteWebhookResult,
+    TestWebhookResult,
+    RegenerateSecretResult,
+
+    // Pricing types
+    PricingPlan,
+    PricingResult,
+    PricingDetailPlan,
+    PricingDetailsResult,
+
+    // Usage types
+    UsageSummary,
+    UsageQuota,
+    UsageDay,
+    UsageHistoryResult,
+    UsageByToolResult,
+    UsageMonthlyResult,
+
     // Account types (GDPR)
     AccountDeletionResult,
     AccountExportResult,
@@ -131,3 +165,6 @@ export type {
     IncidentReportRequest,
     IncidentReportResponse,
 } from './types/index.js';
+
+// Re-export ContentSeverity from constants
+export { ContentSeverity } from './constants.js';

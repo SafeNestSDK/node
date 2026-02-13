@@ -115,10 +115,10 @@ describe('Tuteliq', () => {
 
             const call = vi.mocked(fetch).mock.calls[0];
             const body = JSON.parse(call[1]?.body as string);
-            expect(body.context).toEqual({ platform: 'chat' });
+            expect(body.context).toEqual({ platform: 'chat - Node SDK' });
         });
 
-        it('should pass object context directly', async () => {
+        it('should pass object context with SDK platform appended', async () => {
             const mockResponse = { is_bullying: false };
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
@@ -130,7 +130,7 @@ describe('Tuteliq', () => {
 
             const call = vi.mocked(fetch).mock.calls[0];
             const body = JSON.parse(call[1]?.body as string);
-            expect(body.context).toEqual({ ageGroup: '11-13', relationship: 'classmates' });
+            expect(body.context).toEqual({ ageGroup: '11-13', relationship: 'classmates', platform: 'Node SDK' });
         });
     });
 
