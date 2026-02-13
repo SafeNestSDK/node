@@ -1,5 +1,5 @@
 // Main export
-export { SafeNest, SafeNestClient } from './client.js';
+export { Tuteliq, TuteliqClient } from './client.js';
 
 // Constants and enums export
 export {
@@ -19,7 +19,7 @@ export {
 
 // Error exports
 export {
-    SafeNestError,
+    TuteliqError,
     AuthenticationError,
     RateLimitError,
     ValidationError,
@@ -34,8 +34,8 @@ export {
 // Type exports
 export type {
     // Client options
-    SafeNestOptions,
-    SafeNestClientOptions,
+    TuteliqOptions,
+    TuteliqClientOptions,
     Usage,
     RequestMeta,
     ApiError,
@@ -84,6 +84,36 @@ export type {
     // Account types (GDPR)
     AccountDeletionResult,
     AccountExportResult,
+
+    // Consent types (GDPR)
+    ConsentType,
+    ConsentStatus,
+    RecordConsentInput,
+    ConsentRecord,
+    ConsentStatusResult,
+    ConsentActionResult,
+
+    // Rectification types (GDPR)
+    RectifyDataInput,
+    RectifyDataResult,
+
+    // Audit log types (GDPR)
+    AuditAction,
+    AuditLogEntry,
+    AuditLogsResult,
+    GetAuditLogsOptions,
+
+    // Breach management types (GDPR)
+    BreachSeverity,
+    BreachStatus,
+    BreachNotificationStatus,
+    LogBreachInput,
+    UpdateBreachInput,
+    BreachRecord,
+    LogBreachResult,
+    BreachListResult,
+    BreachResult,
+    GetBreachesOptions,
 
     // Legacy type aliases (backwards compatibility)
     DetectBullyingRequest,

@@ -1,5 +1,5 @@
 /**
- * SafeNest SDK Constants
+ * Tuteliq SDK Constants
  * Mirrors the server-side constants for consistency
  */
 

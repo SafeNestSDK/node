@@ -1,6 +1,6 @@
-# Contributing to @safenest/sdk
+# Contributing to @tuteliq/sdk
 
-Thank you for your interest in contributing to the SafeNest SDK! This document provides guidelines and information for contributors.
+Thank you for your interest in contributing to the Tuteliq SDK! This document provides guidelines and information for contributors.
 
 ## Code of Conduct
 
@@ -12,7 +12,7 @@ By participating in this project, you agree to maintain a respectful and inclusi
 
 Before submitting a bug report:
 
-1. Check the [existing issues](https://github.com/safenest/sdk-typescript/issues) to avoid duplicates
+1. Check the [existing issues](https://github.com/tuteliq/sdk-typescript/issues) to avoid duplicates
 2. Use the latest version of the SDK
 3. Collect relevant information (Node.js version, OS, error messages)
 
@@ -148,7 +148,7 @@ docs(readme): update installation instructions
 
 ## Release Process
 
-Releases are managed by the SafeNest team. Version numbers follow [Semantic Versioning](https://semver.org/):
+Releases are managed by the Tuteliq team. Version numbers follow [Semantic Versioning](https://semver.org/):
 
 - **MAJOR**: Breaking changes
 - **MINOR**: New features (backwards compatible)
@@ -156,9 +156,9 @@ Releases are managed by the SafeNest team. Version numbers follow [Semantic Vers
 
 ## Getting Help
 
-- **Documentation**: [docs.safenest.dev](https://docs.safenest.dev)
-- **Discord**: [discord.gg/safenest](https://discord.gg/safenest)
-- **Issues**: [GitHub Issues](https://github.com/safenest/sdk-typescript/issues)
+- **Documentation**: [ai.tuteliq.ai/docs](https://ai.tuteliq.ai/docs)
+- **Discord**: [discord.gg/tuteliq](https://discord.gg/tuteliq)
+- **Issues**: [GitHub Issues](https://github.com/tuteliq/sdk-typescript/issues)
 
 ## License
 
@@ -166,4 +166,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 
 ---
 
-Thank you for contributing to SafeNest! Your efforts help make the internet safer for children.
+Thank you for contributing to Tuteliq! Your efforts help make the internet safer for children.

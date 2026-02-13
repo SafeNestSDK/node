@@ -1,34 +1,34 @@
 <p align="center">
-  <img src="./assets/logo.png" alt="SafeNest" width="200" />
+  <img src="./assets/logo.png" alt="Tuteliq" width="200" />
 </p>
 
-<h1 align="center">@safenest/sdk</h1>
+<h1 align="center">@tuteliq/sdk</h1>
 
 <p align="center">
-  <strong>Official TypeScript/JavaScript SDK for the SafeNest API</strong><br>
+  <strong>Official TypeScript/JavaScript SDK for the Tuteliq API</strong><br>
   AI-powered child safety analysis for modern applications
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@safenest/sdk"><img src="https://img.shields.io/npm/v/@safenest/sdk.svg" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/@safenest/sdk"><img src="https://img.shields.io/npm/dm/@safenest/sdk.svg" alt="npm downloads"></a>
-  <a href="https://github.com/SafeNestSDK/node/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@safenest/sdk.svg" alt="license"></a>
-  <a href="https://github.com/SafeNestSDK/node/actions"><img src="https://img.shields.io/github/actions/workflow/status/SafeNestSDK/node/ci.yml" alt="build status"></a>
-  <a href="https://bundlephobia.com/package/@safenest/sdk"><img src="https://img.shields.io/bundlephobia/minzip/@safenest/sdk" alt="bundle size"></a>
+  <a href="https://www.npmjs.com/package/@tuteliq/sdk"><img src="https://img.shields.io/npm/v/@tuteliq/sdk.svg" alt="npm version"></a>
+  <a href="https://www.npmjs.com/package/@tuteliq/sdk"><img src="https://img.shields.io/npm/dm/@tuteliq/sdk.svg" alt="npm downloads"></a>
+  <a href="https://github.com/Tuteliq/node/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@tuteliq/sdk.svg" alt="license"></a>
+  <a href="https://github.com/Tuteliq/node/actions"><img src="https://img.shields.io/github/actions/workflow/status/Tuteliq/node/ci.yml" alt="build status"></a>
+  <a href="https://bundlephobia.com/package/@tuteliq/sdk"><img src="https://img.shields.io/bundlephobia/minzip/@tuteliq/sdk" alt="bundle size"></a>
 </p>
 
 <p align="center">
-  <a href="https://docs.safenest.dev">Documentation</a> •
-  <a href="https://safenest.dev/dashboard">Dashboard</a> •
+  <a href="https://ai.tuteliq.ai/docs">Documentation</a> •
+  <a href="https://tuteliq.ai/dashboard">Dashboard</a> •
   <a href="https://discord.gg/7kbTeRYRXD">Discord</a> •
-  <a href="https://twitter.com/safenestdev">Twitter</a>
+  <a href="https://twitter.com/tuteliqdev">Twitter</a>
 </p>
 
 ---
 
 ## Overview
 
-SafeNest provides AI-powered content analysis to help protect children in digital environments. This SDK makes it easy to integrate SafeNest's capabilities into your Node.js, browser, or edge runtime applications.
+Tuteliq provides AI-powered content analysis to help protect children in digital environments. This SDK makes it easy to integrate Tuteliq's capabilities into your Node.js, browser, or edge runtime applications.
 
 ### Key Features
 
@@ -39,7 +39,7 @@ SafeNest provides AI-powered content analysis to help protect children in digita
 - **Action Guidance** — Generate age-appropriate response recommendations
 - **Incident Reports** — Create professional summaries for review
 
-### Why SafeNest?
+### Why Tuteliq?
 
 | Feature | Description |
 |---------|-------------|
@@ -54,16 +54,16 @@ SafeNest provides AI-powered content analysis to help protect children in digita
 
 ```bash
 # npm
-npm install @safenest/sdk
+npm install @tuteliq/sdk
 
 # yarn
-yarn add @safenest/sdk
+yarn add @tuteliq/sdk
 
 # pnpm
-pnpm add @safenest/sdk
+pnpm add @tuteliq/sdk
 
 # bun
-bun add @safenest/sdk
+bun add @tuteliq/sdk
 ```
 
 ### Requirements
@@ -76,12 +76,12 @@ bun add @safenest/sdk
 ## Quick Start
 
 ```typescript
-import { SafeNest } from '@safenest/sdk'
+import { Tuteliq } from '@tuteliq/sdk'
 
-const safenest = new SafeNest(process.env.SAFENEST_API_KEY)
+const tuteliq = new Tuteliq(process.env.TUTELIQ_API_KEY)
 
 // Quick safety analysis
-const result = await safenest.analyze("User message to analyze")
+const result = await tuteliq.analyze("User message to analyze")
 
 if (result.risk_level !== 'safe') {
   console.log('Risk detected:', result.risk_level)
@@ -97,13 +97,13 @@ if (result.risk_level !== 'safe') {
 ### Initialization
 
 ```typescript
-import { SafeNest } from '@safenest/sdk'
+import { Tuteliq } from '@tuteliq/sdk'
 
 // Simple
-const safenest = new SafeNest('your-api-key')
+const tuteliq = new Tuteliq('your-api-key')
 
 // With options
-const safenest = new SafeNest('your-api-key', {
+const tuteliq = new Tuteliq('your-api-key', {
   timeout: 30000,    // Request timeout in ms (default: 30 seconds)
   retries: 3,        // Retry attempts for transient failures (default: 3)
   retryDelay: 1000,  // Initial retry delay in ms (default: 1000)
@@ -117,7 +117,7 @@ const safenest = new SafeNest('your-api-key', {
 All detection methods accept optional tracking fields for correlation, multi-tenant routing, and custom metadata:
 
 ```typescript
-const result = await safenest.detectBullying({
+const result = await tuteliq.detectBullying({
   content: "Nobody likes you, just leave",
   context: 'chat',
 
@@ -153,7 +153,7 @@ These fields are:
 Detects bullying and harassment in text content.
 
 ```typescript
-const result = await safenest.detectBullying({
+const result = await tuteliq.detectBullying({
   content: "Nobody likes you, just leave",
   context: 'chat'  // or { ageGroup: '11-13', relationship: 'classmates' }
 })
@@ -172,7 +172,7 @@ console.log(result.recommended_action) // 'flag_for_moderator'
 Analyzes conversation threads for grooming patterns.
 
 ```typescript
-const result = await safenest.detectGrooming({
+const result = await tuteliq.detectGrooming({
   messages: [
     { role: 'adult', content: "This is our special secret" },
     { role: 'child', content: "Ok I won't tell anyone" }
@@ -193,7 +193,7 @@ console.log(result.recommended_action) // 'immediate_intervention'
 Identifies potentially dangerous or harmful content.
 
 ```typescript
-const result = await safenest.detectUnsafe({
+const result = await tuteliq.detectUnsafe({
   content: "I don't want to be here anymore"
 })
 
@@ -213,10 +213,10 @@ Quick combined analysis — runs bullying and unsafe detection in parallel.
 
 ```typescript
 // Simple string input (costs 2 API calls: bullying + unsafe)
-const result = await safenest.analyze("Message to check")
+const result = await tuteliq.analyze("Message to check")
 
 // With options — run only bullying (costs 1 API call)
-const result = await safenest.analyze({
+const result = await tuteliq.analyze({
   content: "Message to check",
   context: 'social_media',
   include: ['bullying', 'unsafe']  // Select which checks to run
@@ -240,12 +240,12 @@ Summarizes emotional signals in content or conversations.
 
 ```typescript
 // Single content
-const result = await safenest.analyzeEmotions({
+const result = await tuteliq.analyzeEmotions({
   content: "I'm so stressed about everything lately"
 })
 
 // Or conversation history
-const result = await safenest.analyzeEmotions({
+const result = await tuteliq.analyzeEmotions({
   messages: [
     { sender: 'child', content: "I failed the test" },
     { sender: 'child', content: "Everyone else did fine" },
@@ -269,7 +269,7 @@ console.log(result.recommended_followup) // "Check in about school stress..."
 Generates age-appropriate action guidance.
 
 ```typescript
-const plan = await safenest.getActionPlan({
+const plan = await tuteliq.getActionPlan({
   situation: 'Someone is spreading rumors about me at school',
   childAge: 12,
   audience: 'child',  // 'child' | 'parent' | 'educator' | 'platform'
@@ -287,7 +287,7 @@ console.log(plan.reading_level)  // 'grade_5'
 Creates structured incident summaries for professional review.
 
 ```typescript
-const report = await safenest.generateReport({
+const report = await tuteliq.generateReport({
   messages: [
     { sender: 'user1', content: 'Threatening message' },
     { sender: 'child', content: 'Please stop' }
@@ -315,10 +315,10 @@ Customize safety thresholds for your application.
 
 ```typescript
 // Get current policy
-const policy = await safenest.getPolicy()
+const policy = await tuteliq.getPolicy()
 
 // Update policy
-await safenest.setPolicy({
+await tuteliq.setPolicy({
   bullying: {
     enabled: true,
     minRiskScoreToFlag: 0.5,
@@ -340,7 +340,7 @@ await safenest.setPolicy({
 Permanently delete all data associated with your account (Right to Erasure, GDPR Article 17).
 
 ```typescript
-const result = await safenest.deleteAccountData()
+const result = await tuteliq.deleteAccountData()
 
 console.log(result.message)        // "All user data has been deleted"
 console.log(result.deleted_count)  // 42
@@ -351,7 +351,7 @@ console.log(result.deleted_count)  // 42
 Export all data associated with your account as JSON (Right to Data Portability, GDPR Article 20).
 
 ```typescript
-const data = await safenest.exportAccountData()
+const data = await tuteliq.exportAccountData()
 
 console.log(data.userId)                    // 'user_123'
 console.log(data.exportedAt)                // '2026-02-11T...'
@@ -366,15 +366,15 @@ console.log(data.data.incidents.length)     // 5
 The SDK automatically captures usage metadata from API responses:
 
 ```typescript
-const result = await safenest.detectBullying({ content: 'test' })
+const result = await tuteliq.detectBullying({ content: 'test' })
 
 // Access usage stats
-console.log(safenest.usage)
+console.log(tuteliq.usage)
 // { limit: 10000, used: 5234, remaining: 4766 }
 
 // Access request metadata
-console.log(safenest.lastRequestId)   // 'req_1a2b3c...'
-console.log(safenest.lastLatencyMs)   // 145
+console.log(tuteliq.lastRequestId)   // 'req_1a2b3c...'
+console.log(tuteliq.lastLatencyMs)   // 145
 ```
 
 ---
@@ -385,8 +385,8 @@ The SDK provides typed error classes for different failure scenarios:
 
 ```typescript
 import {
-  SafeNest,
-  SafeNestError,
+  Tuteliq,
+  TuteliqError,
   AuthenticationError,
   RateLimitError,
   QuotaExceededError,
@@ -396,10 +396,10 @@ import {
   ServerError,
   TimeoutError,
   NetworkError,
-} from '@safenest/sdk'
+} from '@tuteliq/sdk'
 
 try {
-  const result = await safenest.detectBullying({ content: 'test' })
+  const result = await tuteliq.detectBullying({ content: 'test' })
 } catch (error) {
   if (error instanceof AuthenticationError) {
     // 401 - Invalid or missing API key
@@ -428,7 +428,7 @@ try {
   } else if (error instanceof NetworkError) {
     // Network connectivity issue
     console.error('Check your connection')
-  } else if (error instanceof SafeNestError) {
+  } else if (error instanceof TuteliqError) {
     // Generic SDK error
     console.error('Error:', error.message)
   }
@@ -442,7 +442,7 @@ try {
 Full TypeScript support with comprehensive type definitions:
 
 ```typescript
-import { SafeNest } from '@safenest/sdk'
+import { Tuteliq } from '@tuteliq/sdk'
 import type {
   // Results
   BullyingResult,
@@ -471,7 +471,7 @@ import type {
   GroomingMessage,
   EmotionMessage,
   ReportMessage,
-} from '@safenest/sdk'
+} from '@tuteliq/sdk'
 ```
 
 ### Using Enums
@@ -488,7 +488,7 @@ import {
   EmotionTrend,
   IncidentStatus,
   ErrorCode,
-} from '@safenest/sdk'
+} from '@tuteliq/sdk'
 
 // Type-safe severity checks
 if (result.severity === Severity.CRITICAL) {
@@ -509,7 +509,7 @@ if (error.code === ErrorCode.RATE_LIMIT_EXCEEDED) {
 You can also import enums separately:
 
 ```typescript
-import { Severity, RiskCategory } from '@safenest/sdk/constants'
+import { Severity, RiskCategory } from '@tuteliq/sdk/constants'
 ```
 
 ---
@@ -522,14 +522,14 @@ Use a server-side API route to keep your API key secure:
 
 ```typescript
 // app/api/safety/route.ts (server-side — API key stays on the server)
-import { SafeNest } from '@safenest/sdk'
+import { Tuteliq } from '@tuteliq/sdk'
 import { NextResponse } from 'next/server'
 
-const safenest = new SafeNest(process.env.SAFENEST_API_KEY!)
+const tuteliq = new Tuteliq(process.env.TUTELIQ_API_KEY!)
 
 export async function POST(req: Request) {
   const { message } = await req.json()
-  const result = await safenest.analyze(message)
+  const result = await tuteliq.analyze(message)
   return NextResponse.json(result)
 }
 ```
@@ -572,16 +572,16 @@ function MessageInput() {
 ### Express Middleware
 
 ```typescript
-import { SafeNest, RateLimitError } from '@safenest/sdk'
+import { Tuteliq, RateLimitError } from '@tuteliq/sdk'
 import express from 'express'
 
-const safenest = new SafeNest(process.env.SAFENEST_API_KEY)
+const tuteliq = new Tuteliq(process.env.TUTELIQ_API_KEY)
 
 const safetyMiddleware = async (req, res, next) => {
   const { message } = req.body
 
   try {
-    const result = await safenest.analyze(message)
+    const result = await tuteliq.analyze(message)
 
     if (result.risk_level === 'critical') {
       return res.status(400).json({
@@ -611,7 +611,7 @@ app.post('/messages', safetyMiddleware, (req, res) => {
 const messages = ['message1', 'message2', 'message3']
 
 const results = await Promise.all(
-  messages.map(content => safenest.analyze(content))
+  messages.map(content => tuteliq.analyze(content))
 )
 
 const flagged = results.filter(r => r.risk_level !== 'safe')
@@ -626,10 +626,10 @@ The SDK works in browsers that support the Fetch API:
 
 ```html
 <script type="module">
-  import { SafeNest } from 'https://esm.sh/@safenest/sdk'
+  import { Tuteliq } from 'https://esm.sh/@tuteliq/sdk'
 
-  const safenest = new SafeNest('your-api-key')
-  const result = await safenest.analyze('Hello world')
+  const tuteliq = new Tuteliq('your-api-key')
+  const result = await tuteliq.analyze('Hello world')
 </script>
 ```
 
@@ -639,11 +639,11 @@ The SDK works in browsers that support the Fetch API:
 
 ## Contributing
 
-We welcome contributions! Please see our [Contributing Guide](https://github.com/SafeNestSDK/node/blob/main/CONTRIBUTING.md) for details.
+We welcome contributions! Please see our [Contributing Guide](https://github.com/Tuteliq/node/blob/main/CONTRIBUTING.md) for details.
 
 ```bash
 # Clone the repo
-git clone https://github.com/SafeNestSDK/node.git
+git clone https://github.com/Tuteliq/node.git
 cd node
 
 # Install dependencies
@@ -660,9 +660,9 @@ npm run build
 
 ## API Documentation
 
-- **Base URL**: `https://api.safenest.dev`
-- **Swagger UI**: [api.safenest.dev/docs](https://api.safenest.dev/docs)
-- **OpenAPI JSON**: [api.safenest.dev/docs/json](https://api.safenest.dev/docs/json)
+- **Base URL**: `https://api.tuteliq.ai`
+- **Swagger UI**: [api.tuteliq.ai/docs](https://api.tuteliq.ai/docs)
+- **OpenAPI JSON**: [api.tuteliq.ai/docs/json](https://api.tuteliq.ai/docs/json)
 
 ### Rate Limits
 
@@ -701,16 +701,16 @@ The **grooming** method already accepts a `messages[]` array and analyzes the fu
 
 ### PII Redaction
 
-PII redaction is **enabled by default** on the SafeNest API. It automatically strips emails, phone numbers, URLs, social handles, IPs, and other PII from detection summaries and webhook payloads. The original text is still analyzed in full — only stored outputs are scrubbed. Set `PII_REDACTION_ENABLED=false` to disable.
+PII redaction is **enabled by default** on the Tuteliq API. It automatically strips emails, phone numbers, URLs, social handles, IPs, and other PII from detection summaries and webhook payloads. The original text is still analyzed in full — only stored outputs are scrubbed. Set `PII_REDACTION_ENABLED=false` to disable.
 
 ---
 
 ## Support
 
-- **Documentation**: [docs.safenest.dev](https://docs.safenest.dev)
+- **Documentation**: [ai.tuteliq.ai/docs](https://ai.tuteliq.ai/docs)
 - **Discord**: [discord.gg/7kbTeRYRXD](https://discord.gg/7kbTeRYRXD)
-- **Email**: support@safenest.dev
-- **Issues**: [GitHub Issues](https://github.com/SafeNestSDK/node/issues)
+- **Email**: support@tuteliq.ai
+- **Issues**: [GitHub Issues](https://github.com/Tuteliq/node/issues)
 
 ---
 
@@ -720,6 +720,31 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
+## The Mission: Why This Matters
+
+Before you decide to contribute or sponsor, read these numbers. They are not projections. They are not estimates from a pitch deck. They are verified statistics from the University of Edinburgh, UNICEF, NCMEC, and Interpol.
+
+- **302 million** children are victims of online sexual exploitation and abuse every year. That is **10 children every second**. *(Childlight / University of Edinburgh, 2024)*
+- **1 in 8** children globally have been victims of non-consensual sexual imagery in the past year. *(Childlight, 2024)*
+- **370 million** girls and women alive today experienced rape or sexual assault in childhood. An estimated **240–310 million** boys and men experienced the same. *(UNICEF, 2024)*
+- **29.2 million** incidents of suspected child sexual exploitation were reported to NCMEC's CyberTipline in 2024 alone — containing **62.9 million files** (images, videos). *(NCMEC, 2025)*
+- **546,000** reports of online enticement (adults grooming children) in 2024 — a **192% increase** from the year before. *(NCMEC, 2025)*
+- **1,325% increase** in AI-generated child sexual abuse material reports between 2023 and 2024. The technology that should protect children is being weaponized against them. *(NCMEC, 2025)*
+- **100 sextortion reports per day** to NCMEC. Since 2021, at least **36 teenage boys** have taken their own lives because they were victimized by sextortion. *(NCMEC, 2025)*
+- **84%** of reports resolve outside the United States. This is not an American problem. This is a **global emergency**. *(NCMEC, 2025)*
+
+End-to-end encryption is making platforms blind. In 2024, platforms reported **7 million fewer incidents** than the year before — not because abuse stopped, but because they can no longer see it. The tools that catch known images are failing. The systems that rely on human moderators are overwhelmed. The technology to detect behavior — grooming patterns, escalation, manipulation — in real-time text conversations **exists right now**. It is running at [api.tuteliq.ai](https://api.tuteliq.ai).
+
+The question is not whether this technology is possible. The question is whether we build the company to put it everywhere it needs to be.
+
+**Every second we wait, another child is harmed.**
+
+We have the technology. We need the support.
+
+If this mission matters to you, consider [sponsoring our open-source work](https://github.com/sponsors/Tuteliq) so we can keep building the tools that protect children — and keep them free and accessible for everyone.
+
+---
+
 <p align="center">
-  <sub>Built with care for child safety by the <a href="https://safenest.dev">SafeNest</a> team</sub>
+  <sub>Built with care for child safety by the <a href="https://tuteliq.ai">Tuteliq</a> team</sub>
 </p>

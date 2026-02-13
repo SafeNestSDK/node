@@ -42,7 +42,7 @@ export interface ApiError {
     };
 }
 
-export interface SafeNestOptions {
+export interface TuteliqOptions {
     /** Request timeout in milliseconds (defaults to 30000) */
     timeout?: number;
     /** Number of retry attempts (defaults to 3) */
@@ -182,7 +182,7 @@ export interface RequestMeta {
 }
 
 /**
- * @deprecated Use `SafeNestOptions` instead. The API key is passed as the first
- * argument to the `SafeNest` constructor, not as an option.
+ * @deprecated Use `TuteliqOptions` instead. The API key is passed as the first
+ * argument to the `Tuteliq` constructor, not as an option.
  */
-export type SafeNestClientOptions = SafeNestOptions;
+export type TuteliqClientOptions = TuteliqOptions;

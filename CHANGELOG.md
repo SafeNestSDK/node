@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release of the SafeNest TypeScript SDK
+- Initial release of the Tuteliq TypeScript SDK
 - **Safety Detection**
   - `detectBullying()` - Detect bullying and harassment in text
   - `detectGrooming()` - Analyze conversations for grooming patterns
@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
-- API endpoint locked to official SafeNest server
+- API endpoint locked to official Tuteliq server
 - API key validation (minimum length, type checking)
 - Configuration bounds validation (timeout, retries)
 - No sensitive data exposed in error messages

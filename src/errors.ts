@@ -6,14 +6,14 @@ export interface ErrorMeta {
     code?: string;
     /** Suggested action to resolve the error */
     suggestion?: string;
-    /** Helpful links (e.g., { upgrade: "https://safenest.dev/pricing" }) */
+    /** Helpful links (e.g., { upgrade: "https://tuteliq.ai/pricing" }) */
     links?: Record<string, string>;
 }
 
 /**
- * Base error class for SafeNest SDK errors
+ * Base error class for Tuteliq SDK errors
  */
-export class SafeNestError extends Error {
+export class TuteliqError extends Error {
     /** API error code */
     public readonly code?: string;
     /** Suggested action to resolve the error */
@@ -28,18 +28,18 @@ export class SafeNestError extends Error {
         meta?: ErrorMeta
     ) {
         super(message);
-        this.name = 'SafeNestError';
+        this.name = 'TuteliqError';
         this.code = meta?.code;
         this.suggestion = meta?.suggestion;
         this.links = meta?.links;
-        Object.setPrototypeOf(this, SafeNestError.prototype);
+        Object.setPrototypeOf(this, TuteliqError.prototype);
     }
 }
 
 /**
  * Error thrown when authentication fails (401)
  */
-export class AuthenticationError extends SafeNestError {
+export class AuthenticationError extends TuteliqError {
     constructor(
         message = 'Authentication failed. Please check your API key.',
         meta?: ErrorMeta
@@ -53,7 +53,7 @@ export class AuthenticationError extends SafeNestError {
 /**
  * Error thrown when rate limit is exceeded (429)
  */
-export class RateLimitError extends SafeNestError {
+export class RateLimitError extends TuteliqError {
     constructor(
         message = 'Rate limit exceeded. Please try again later.',
         public readonly retryAfter?: number,
@@ -68,7 +68,7 @@ export class RateLimitError extends SafeNestError {
 /**
  * Error thrown when request validation fails (400)
  */
-export class ValidationError extends SafeNestError {
+export class ValidationError extends TuteliqError {
     constructor(message: string, details?: unknown, meta?: ErrorMeta) {
         super(message, 400, details, meta);
         this.name = 'ValidationError';
@@ -79,7 +79,7 @@ export class ValidationError extends SafeNestError {
 /**
  * Error thrown when a resource is not found (404)
  */
-export class NotFoundError extends SafeNestError {
+export class NotFoundError extends TuteliqError {
     constructor(message = 'Resource not found', meta?: ErrorMeta) {
         super(message, 404, undefined, meta);
         this.name = 'NotFoundError';
@@ -90,7 +90,7 @@ export class NotFoundError extends SafeNestError {
 /**
  * Error thrown when the server returns an error (5xx)
  */
-export class ServerError extends SafeNestError {
+export class ServerError extends TuteliqError {
     constructor(
         message = 'Server error. Please try again later.',
         statusCode = 500,
@@ -105,7 +105,7 @@ export class ServerError extends SafeNestError {
 /**
  * Error thrown when a request times out
  */
-export class TimeoutError extends SafeNestError {
+export class TimeoutError extends TuteliqError {
     constructor(message = 'Request timed out') {
         super(message);
         this.name = 'TimeoutError';
@@ -116,7 +116,7 @@ export class TimeoutError extends SafeNestError {
 /**
  * Error thrown when network connectivity fails
  */
-export class NetworkError extends SafeNestError {
+export class NetworkError extends TuteliqError {
     constructor(message = 'Network error. Please check your connection.') {
         super(message);
         this.name = 'NetworkError';
@@ -127,7 +127,7 @@ export class NetworkError extends SafeNestError {
 /**
  * Error thrown when monthly message limit is reached
  */
-export class QuotaExceededError extends SafeNestError {
+export class QuotaExceededError extends TuteliqError {
     constructor(
         message = 'Monthly message limit reached. Please upgrade your plan or purchase credits.',
         meta?: ErrorMeta
@@ -141,7 +141,7 @@ export class QuotaExceededError extends SafeNestError {
 /**
  * Error thrown when trying to access a restricted endpoint
  */
-export class TierAccessError extends SafeNestError {
+export class TierAccessError extends TuteliqError {
     constructor(
         message = 'This endpoint is not available on your current plan.',
         meta?: ErrorMeta

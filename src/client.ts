@@ -1,5 +1,5 @@
 import {
-    SafeNestOptions,
+    TuteliqOptions,
     Usage,
     RateLimitInfo,
     ApiError,
@@ -34,10 +34,25 @@ import {
     // Account types
     AccountDeletionResult,
     AccountExportResult,
+    RecordConsentInput,
+    ConsentStatusResult,
+    ConsentActionResult,
+    ConsentType,
+    RectifyDataInput,
+    RectifyDataResult,
+    AuditLogsResult,
+    GetAuditLogsOptions,
+    // Breach types
+    LogBreachInput,
+    LogBreachResult,
+    BreachListResult,
+    BreachResult,
+    UpdateBreachInput,
+    GetBreachesOptions,
 } from './types/index.js';
 
 import {
-    SafeNestError,
+    TuteliqError,
     AuthenticationError,
     RateLimitError,
     ValidationError,
@@ -51,8 +66,8 @@ import {
 
 import { withRetry } from './utils/retry.js';
 
-/** SafeNest API endpoint - locked to official server */
-const API_BASE_URL = 'https://api.safenest.dev';
+/** Tuteliq API endpoint - locked to official server */
+const API_BASE_URL = 'https://api.tuteliq.ai';
 
 const DEFAULT_TIMEOUT = 30000;
 const DEFAULT_RETRIES = 3;
@@ -63,16 +78,16 @@ const MAX_CONTENT_LENGTH = 50000;  // 50KB max content
 const MAX_MESSAGES_COUNT = 100;    // Max messages per request
 
 /**
- * SafeNest - AI-powered child safety analysis
+ * Tuteliq - AI-powered child safety analysis
  *
  * @example
  * ```typescript
- * import { SafeNest } from '@safenest/sdk'
+ * import { Tuteliq } from '@tuteliq/sdk'
  *
- * const safenest = new SafeNest(process.env.SAFENEST_API_KEY)
+ * const tuteliq = new Tuteliq(process.env.TUTELIQ_API_KEY)
  *
  * // Detect bullying
- * const result = await safenest.detectBullying({
+ * const result = await tuteliq.detectBullying({
  *   content: "You're not welcome here",
  *   context: 'chat'
  * })
@@ -83,10 +98,10 @@ const MAX_MESSAGES_COUNT = 100;    // Max messages per request
  * }
  *
  * // Check usage
- * console.log(safenest.usage) // { limit: 10000, used: 5234, remaining: 4766 }
+ * console.log(tuteliq.usage) // { limit: 10000, used: 5234, remaining: 4766 }
  * ```
  */
-export class SafeNest {
+export class Tuteliq {
     private readonly apiKey: string;
     private readonly timeout: number;
     private readonly retries: number;
@@ -99,23 +114,23 @@ export class SafeNest {
     private _usageWarning: string | null = null;
 
     /**
-     * Create a new SafeNest client
+     * Create a new Tuteliq client
      *
-     * @param apiKey - Your SafeNest API key
+     * @param apiKey - Your Tuteliq API key
      * @param options - Optional configuration
      *
      * @example
      * ```typescript
      * // Simple usage
-     * const safenest = new SafeNest('your-api-key')
+     * const tuteliq = new Tuteliq('your-api-key')
      *
      * // With options
-     * const safenest = new SafeNest('your-api-key', {
+     * const tuteliq = new Tuteliq('your-api-key', {
      *   timeout: 10000
      * })
      * ```
      */
-    constructor(apiKey: string, options: SafeNestOptions = {}) {
+    constructor(apiKey: string, options: TuteliqOptions = {}) {
         if (!apiKey || typeof apiKey !== 'string') {
             throw new Error('API key is required and must be a string');
         }
@@ -216,7 +231,7 @@ export class SafeNest {
      * Make an authenticated request to the API
      */
     private async request<T>(
-        method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+        method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
         path: string,
         body?: unknown
     ): Promise<T> {
@@ -283,7 +298,7 @@ export class SafeNest {
             clearTimeout(timeoutId);
             this._lastLatencyMs = Date.now() - startTime;
 
-            if (error instanceof SafeNestError) {
+            if (error instanceof TuteliqError) {
                 throw error;
             }
 
@@ -309,7 +324,7 @@ export class SafeNest {
                 }
             }
 
-            throw new SafeNestError(
+            throw new TuteliqError(
                 error instanceof Error ? error.message : 'Unknown error occurred'
             );
         }
@@ -349,7 +364,7 @@ export class SafeNest {
                 if (status >= 500) {
                     throw new ServerError(message, status, { code, suggestion, links });
                 }
-                throw new SafeNestError(message, status, details, { code, suggestion, links });
+                throw new TuteliqError(message, status, details, { code, suggestion, links });
         }
     }
 
@@ -357,7 +372,7 @@ export class SafeNest {
      * Make a request with retry logic
      */
     private async requestWithRetry<T>(
-        method: 'GET' | 'POST' | 'PUT' | 'DELETE',
+        method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
         path: string,
         body?: unknown
     ): Promise<T> {
@@ -379,7 +394,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const result = await safenest.detectBullying({
+     * const result = await tuteliq.detectBullying({
      *   content: "Nobody likes you, loser",
      *   context: 'chat'
      * })
@@ -411,7 +426,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const result = await safenest.detectGrooming({
+     * const result = await tuteliq.detectGrooming({
      *   messages: [
      *     { role: 'adult', content: "Don't tell your parents" },
      *     { role: 'child', content: "Ok" }
@@ -451,7 +466,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const result = await safenest.detectUnsafe({
+     * const result = await tuteliq.detectUnsafe({
      *   content: "I want to hurt myself"
      * })
      *
@@ -481,7 +496,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const result = await safenest.analyze("Some user message")
+     * const result = await tuteliq.analyze("Some user message")
      *
      * if (result.risk_level !== 'safe') {
      *   console.log('Risk:', result.risk_level)
@@ -599,7 +614,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const result = await safenest.analyzeEmotions({
+     * const result = await tuteliq.analyzeEmotions({
      *   content: "I'm so stressed about everything"
      * })
      *
@@ -657,7 +672,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const plan = await safenest.getActionPlan({
+     * const plan = await tuteliq.getActionPlan({
      *   situation: 'Someone is spreading rumors about me',
      *   childAge: 12,
      *   audience: 'child'
@@ -696,7 +711,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const report = await safenest.generateReport({
+     * const report = await tuteliq.generateReport({
      *   messages: [
      *     { sender: 'user1', content: 'Harmful message' },
      *     { sender: 'child', content: 'Response' }
@@ -740,7 +755,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const policy = await safenest.getPolicy()
+     * const policy = await tuteliq.getPolicy()
      * console.log('Bullying enabled:', policy.config?.bullying.enabled)
      * ```
      */
@@ -756,7 +771,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * await safenest.setPolicy({
+     * await tuteliq.setPolicy({
      *   bullying: {
      *     enabled: true,
      *     minRiskScoreToFlag: 0.5
@@ -781,7 +796,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const result = await safenest.batch({
+     * const result = await tuteliq.batch({
      *   items: [
      *     { type: 'bullying', content: 'Message 1' },
      *     { type: 'unsafe', content: 'Message 2' },
@@ -844,7 +859,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const summary = await safenest.getUsageSummary()
+     * const summary = await tuteliq.getUsageSummary()
      * console.log('Used:', summary.messages_used)
      * console.log('Limit:', summary.message_limit)
      * console.log('Percent:', summary.usage_percentage)
@@ -862,7 +877,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const quota = await safenest.getQuota()
+     * const quota = await tuteliq.getQuota()
      * console.log('Rate limit:', quota.rate_limit)
      * console.log('Remaining this minute:', quota.remaining)
      * ```
@@ -886,7 +901,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const result = await safenest.deleteAccountData()
+     * const result = await tuteliq.deleteAccountData()
      * console.log(result.message)        // "All user data has been deleted"
      * console.log(result.deleted_count)  // 42
      * ```
@@ -905,7 +920,7 @@ export class SafeNest {
      *
      * @example
      * ```typescript
-     * const data = await safenest.exportAccountData()
+     * const data = await tuteliq.exportAccountData()
      * console.log(data.userId)
      * console.log(data.exportedAt)
      * console.log(Object.keys(data.data))  // ['api_keys', 'incidents', ...]
@@ -917,7 +932,200 @@ export class SafeNest {
             '/api/v1/account/export'
         );
     }
+
+    /**
+     * Record user consent (GDPR Article 7)
+     *
+     * Creates an immutable consent record for audit trail.
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.recordConsent({
+     *   consent_type: 'child_safety_monitoring',
+     *   version: '1.0'
+     * })
+     * ```
+     */
+    async recordConsent(input: RecordConsentInput): Promise<ConsentActionResult> {
+        return this.requestWithRetry<ConsentActionResult>(
+            'POST',
+            '/api/v1/account/consent',
+            input
+        );
+    }
+
+    /**
+     * Get current consent status (GDPR Article 7)
+     *
+     * Returns the latest consent record per type.
+     *
+     * @example
+     * ```typescript
+     * // Get all consent statuses
+     * const all = await tuteliq.getConsentStatus()
+     *
+     * // Get specific consent type
+     * const monitoring = await tuteliq.getConsentStatus('child_safety_monitoring')
+     * ```
+     */
+    async getConsentStatus(type?: ConsentType): Promise<ConsentStatusResult> {
+        const query = type ? `?type=${type}` : '';
+        return this.requestWithRetry<ConsentStatusResult>(
+            'GET',
+            `/api/v1/account/consent${query}`
+        );
+    }
+
+    /**
+     * Withdraw consent (GDPR Article 7.3)
+     *
+     * Creates a withdrawal record. Does not delete consent history.
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.withdrawConsent('marketing')
+     * ```
+     */
+    async withdrawConsent(type: ConsentType): Promise<ConsentActionResult> {
+        return this.requestWithRetry<ConsentActionResult>(
+            'DELETE',
+            `/api/v1/account/consent/${type}`
+        );
+    }
+
+    /**
+     * Rectify user data (GDPR Article 16 — Right to Rectification)
+     *
+     * Updates allowlisted fields on a specific document.
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.rectifyData({
+     *   collection: 'incidents',
+     *   document_id: 'abc123',
+     *   fields: { summary: 'Corrected summary' }
+     * })
+     * ```
+     */
+    async rectifyData(input: RectifyDataInput): Promise<RectifyDataResult> {
+        return this.requestWithRetry<RectifyDataResult>(
+            'PATCH',
+            '/api/v1/account/data',
+            input
+        );
+    }
+
+    /**
+     * Get audit logs (GDPR Article 15 — Right of Access)
+     *
+     * Returns the user's audit trail of all data operations.
+     *
+     * @example
+     * ```typescript
+     * // Get all audit logs
+     * const logs = await tuteliq.getAuditLogs()
+     *
+     * // Filter by action
+     * const exports = await tuteliq.getAuditLogs({ action: 'data_export', limit: 10 })
+     * ```
+     */
+    async getAuditLogs(options?: GetAuditLogsOptions): Promise<AuditLogsResult> {
+        const params = new URLSearchParams();
+        if (options?.action) params.set('action', options.action);
+        if (options?.limit) params.set('limit', String(options.limit));
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.requestWithRetry<AuditLogsResult>(
+            'GET',
+            `/api/v1/account/audit-logs${query}`
+        );
+    }
+
+    // =========================================================================
+    // Breach Management (GDPR Article 33/34)
+    // =========================================================================
+
+    /**
+     * Log a new data breach
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.logBreach({
+     *   title: 'Unauthorized access to user data',
+     *   description: 'A third-party service exposed user emails',
+     *   severity: 'high',
+     *   affected_user_ids: ['user-1', 'user-2'],
+     *   data_categories: ['email', 'name'],
+     *   reported_by: 'security-team'
+     * })
+     * ```
+     */
+    async logBreach(input: LogBreachInput): Promise<LogBreachResult> {
+        return this.requestWithRetry<LogBreachResult>(
+            'POST',
+            '/api/v1/admin/breach',
+            input
+        );
+    }
+
+    /**
+     * List data breaches
+     *
+     * @example
+     * ```typescript
+     * // List all breaches
+     * const all = await tuteliq.listBreaches()
+     *
+     * // Filter by status
+     * const active = await tuteliq.listBreaches({ status: 'investigating', limit: 10 })
+     * ```
+     */
+    async listBreaches(options?: GetBreachesOptions): Promise<BreachListResult> {
+        const params = new URLSearchParams();
+        if (options?.status) params.set('status', options.status);
+        if (options?.limit) params.set('limit', String(options.limit));
+        const query = params.toString() ? `?${params.toString()}` : '';
+        return this.requestWithRetry<BreachListResult>(
+            'GET',
+            `/api/v1/admin/breach${query}`
+        );
+    }
+
+    /**
+     * Get a single breach by ID
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.getBreach('breach-123')
+     * console.log(result.breach.status)
+     * ```
+     */
+    async getBreach(id: string): Promise<BreachResult> {
+        return this.requestWithRetry<BreachResult>(
+            'GET',
+            `/api/v1/admin/breach/${id}`
+        );
+    }
+
+    /**
+     * Update a breach's status and notification status
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.updateBreachStatus('breach-123', {
+     *   status: 'contained',
+     *   notification_status: 'users_notified',
+     *   notes: 'All affected users have been notified via email'
+     * })
+     * ```
+     */
+    async updateBreachStatus(id: string, input: UpdateBreachInput): Promise<BreachResult> {
+        return this.requestWithRetry<BreachResult>(
+            'PATCH',
+            `/api/v1/admin/breach/${id}`,
+            input
+        );
+    }
 }
 
 // Legacy export for backwards compatibility
-export { SafeNest as SafeNestClient };
+export { Tuteliq as TuteliqClient };

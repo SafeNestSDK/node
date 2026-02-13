@@ -8,7 +8,7 @@
 
 ## Reporting a Vulnerability
 
-We take security seriously at SafeNest. If you discover a security vulnerability in this SDK, please report it responsibly.
+We take security seriously at Tuteliq. If you discover a security vulnerability in this SDK, please report it responsibly.
 
 ### How to Report
 
@@ -16,7 +16,7 @@ We take security seriously at SafeNest. If you discover a security vulnerability
 
 Instead, please send an email to:
 
-📧 **security@safenest.dev**
+📧 **security@tuteliq.ai**
 
 Include the following information:
 
@@ -43,16 +43,16 @@ Include the following information:
 
 ## Security Best Practices
 
-When using the SafeNest SDK:
+When using the Tuteliq SDK:
 
 ### API Key Protection
 
 ```typescript
 // ✅ Good - Use environment variables
-const safenest = new SafeNest(process.env.SAFENEST_API_KEY)
+const tuteliq = new Tuteliq(process.env.TUTELIQ_API_KEY)
 
 // ❌ Bad - Never hardcode API keys
-const safenest = new SafeNest('sk_live_abc123...')
+const tuteliq = new Tuteliq('sk_live_abc123...')
 ```
 
 ### Server-Side Usage
@@ -61,7 +61,7 @@ const safenest = new SafeNest('sk_live_abc123...')
 // ✅ Good - Use SDK on the server
 // API route handler
 app.post('/analyze', async (req, res) => {
-  const result = await safenest.analyze(req.body.content)
+  const result = await tuteliq.analyze(req.body.content)
   res.json(result)
 })
 
@@ -76,7 +76,7 @@ The SDK validates inputs, but always sanitize user content:
 ```typescript
 // ✅ Good - Sanitize before sending
 const sanitized = sanitizeInput(userContent)
-const result = await safenest.analyze(sanitized)
+const result = await tuteliq.analyze(sanitized)
 ```
 
 ## Security Features
@@ -97,6 +97,6 @@ We thank the following security researchers for responsibly disclosing vulnerabi
 
 ---
 
-SafeNest AB
+Tuteliq AB
 Stockholm, Sweden
-[safenest.dev](https://safenest.dev)
+[tuteliq.ai](https://tuteliq.ai)

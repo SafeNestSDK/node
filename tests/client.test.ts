@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { SafeNest } from '../src/client.js';
+import { Tuteliq } from '../src/client.js';
 import {
     AuthenticationError,
     RateLimitError,
@@ -21,13 +21,13 @@ function mockFetchResponse(data: unknown, options: { ok?: boolean; status?: numb
     } as Response;
 }
 
-const API_BASE_URL = 'https://api.safenest.dev';
+const API_BASE_URL = 'https://api.tuteliq.ai';
 
-describe('SafeNest', () => {
-    let safenest: SafeNest;
+describe('Tuteliq', () => {
+    let tuteliq: Tuteliq;
 
     beforeEach(() => {
-        safenest = new SafeNest('test-api-key-12345', {
+        tuteliq = new Tuteliq('test-api-key-12345', {
             timeout: 5000,
             retries: 0, // Disable retries for tests
         });
@@ -39,35 +39,35 @@ describe('SafeNest', () => {
 
     describe('constructor', () => {
         it('should throw error if API key is missing', () => {
-            expect(() => new SafeNest('')).toThrow('API key is required');
+            expect(() => new Tuteliq('')).toThrow('API key is required');
         });
 
         it('should accept simple API key string', () => {
-            const client = new SafeNest('my-api-key');
-            expect(client).toBeInstanceOf(SafeNest);
+            const client = new Tuteliq('my-api-key');
+            expect(client).toBeInstanceOf(Tuteliq);
         });
 
         it('should accept API key with options', () => {
-            const client = new SafeNest('my-api-key', { timeout: 10000 });
-            expect(client).toBeInstanceOf(SafeNest);
+            const client = new Tuteliq('my-api-key', { timeout: 10000 });
+            expect(client).toBeInstanceOf(Tuteliq);
         });
 
         it('should accept options without baseUrl', () => {
-            const client = new SafeNest('test-api-key-12345', { timeout: 15000 });
-            expect(client).toBeInstanceOf(SafeNest);
+            const client = new Tuteliq('test-api-key-12345', { timeout: 15000 });
+            expect(client).toBeInstanceOf(Tuteliq);
         });
 
         it('should reject API key that is too short', () => {
-            expect(() => new SafeNest('short')).toThrow('too short');
+            expect(() => new Tuteliq('short')).toThrow('too short');
         });
 
         it('should reject invalid timeout', () => {
-            expect(() => new SafeNest('valid-api-key-12345', { timeout: 500 }))
+            expect(() => new Tuteliq('valid-api-key-12345', { timeout: 500 }))
                 .toThrow('Timeout must be between');
         });
 
         it('should reject invalid retries', () => {
-            expect(() => new SafeNest('valid-api-key-12345', { retries: 15 }))
+            expect(() => new Tuteliq('valid-api-key-12345', { retries: 15 }))
                 .toThrow('Retries must be between');
         });
     });
@@ -86,7 +86,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.detectBullying({
+            const result = await tuteliq.detectBullying({
                 content: 'test message',
                 context: 'chat',
             });
@@ -108,7 +108,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            await safenest.detectBullying({
+            await tuteliq.detectBullying({
                 content: 'hello',
                 context: 'chat',
             });
@@ -123,7 +123,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            await safenest.detectBullying({
+            await tuteliq.detectBullying({
                 content: 'hello',
                 context: { ageGroup: '11-13', relationship: 'classmates' },
             });
@@ -147,7 +147,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.detectGrooming({
+            const result = await tuteliq.detectGrooming({
                 messages: [
                     { role: 'adult', content: 'Keep this secret' },
                     { role: 'child', content: 'Ok' },
@@ -178,7 +178,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.detectUnsafe({
+            const result = await tuteliq.detectUnsafe({
                 content: 'harmful content',
             });
 
@@ -196,7 +196,7 @@ describe('SafeNest', () => {
                 .mockResolvedValueOnce(mockFetchResponse(bullyingResponse))
                 .mockResolvedValueOnce(mockFetchResponse(unsafeResponse));
 
-            const result = await safenest.analyze('test message');
+            const result = await tuteliq.analyze('test message');
 
             expect(result.risk_level).toBe('safe');
             expect(result.risk_score).toBeLessThan(0.3);
@@ -220,7 +220,7 @@ describe('SafeNest', () => {
                 .mockResolvedValueOnce(mockFetchResponse(bullyingResponse))
                 .mockResolvedValueOnce(mockFetchResponse(unsafeResponse));
 
-            const result = await safenest.analyze('test message');
+            const result = await tuteliq.analyze('test message');
 
             expect(result.risk_level).toBe('high');
             expect(result.risk_score).toBe(0.8);
@@ -236,7 +236,7 @@ describe('SafeNest', () => {
                 .mockResolvedValueOnce(mockFetchResponse(bullyingResponse))
                 .mockResolvedValueOnce(mockFetchResponse(unsafeResponse));
 
-            const result = await safenest.analyze({ content: 'test', include: ['bullying', 'unsafe'] });
+            const result = await tuteliq.analyze({ content: 'test', include: ['bullying', 'unsafe'] });
 
             expect(result.risk_level).toBe('critical');
         });
@@ -254,7 +254,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.analyzeEmotions({
+            const result = await tuteliq.analyzeEmotions({
                 content: 'I feel stressed',
             });
 
@@ -277,7 +277,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.analyzeEmotions({
+            const result = await tuteliq.analyzeEmotions({
                 messages: [
                     { sender: 'child', content: 'I feel sad' },
                     { sender: 'child', content: 'Very sad' },
@@ -303,7 +303,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.getActionPlan({
+            const result = await tuteliq.getActionPlan({
                 situation: 'Someone is bullying me',
                 childAge: 12,
                 audience: 'child',
@@ -323,7 +323,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            await safenest.getActionPlan({ situation: 'test' });
+            await tuteliq.getActionPlan({ situation: 'test' });
 
             const call = vi.mocked(fetch).mock.calls[0];
             const body = JSON.parse(call[1]?.body as string);
@@ -342,7 +342,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.generateReport({
+            const result = await tuteliq.generateReport({
                 messages: [
                     { sender: 'user1', content: 'Harmful message' },
                     { sender: 'child', content: 'Stop' },
@@ -369,7 +369,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            const result = await safenest.getPolicy();
+            const result = await tuteliq.getPolicy();
 
             expect(result.success).toBe(true);
             expect(fetch).toHaveBeenCalledWith(
@@ -383,7 +383,7 @@ describe('SafeNest', () => {
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
 
-            await safenest.setPolicy({
+            await tuteliq.setPolicy({
                 bullying: { enabled: true, minRiskScoreToFlag: 0.5 },
             });
 
@@ -400,7 +400,7 @@ describe('SafeNest', () => {
                 mockFetchResponse({ error: { message: 'Invalid API key' } }, { ok: false, status: 401 })
             );
 
-            await expect(safenest.detectBullying({ content: 'test' }))
+            await expect(tuteliq.detectBullying({ content: 'test' }))
                 .rejects.toThrow(AuthenticationError);
         });
 
@@ -409,7 +409,7 @@ describe('SafeNest', () => {
                 mockFetchResponse({ error: { message: 'Rate limit exceeded' } }, { ok: false, status: 429 })
             );
 
-            await expect(safenest.detectBullying({ content: 'test' }))
+            await expect(tuteliq.detectBullying({ content: 'test' }))
                 .rejects.toThrow(RateLimitError);
         });
 
@@ -418,7 +418,7 @@ describe('SafeNest', () => {
                 mockFetchResponse({ error: { message: 'Invalid input' } }, { ok: false, status: 400 })
             );
 
-            await expect(safenest.detectBullying({ content: 'test' }))
+            await expect(tuteliq.detectBullying({ content: 'test' }))
                 .rejects.toThrow(ValidationError);
         });
 
@@ -427,7 +427,7 @@ describe('SafeNest', () => {
                 mockFetchResponse({ error: { message: 'Server error' } }, { ok: false, status: 500 })
             );
 
-            await expect(safenest.detectBullying({ content: 'test' }))
+            await expect(tuteliq.detectBullying({ content: 'test' }))
                 .rejects.toThrow(ServerError);
         });
 
@@ -436,41 +436,41 @@ describe('SafeNest', () => {
                 Object.assign(new Error('Aborted'), { name: 'AbortError' })
             );
 
-            await expect(safenest.detectBullying({ content: 'test' }))
+            await expect(tuteliq.detectBullying({ content: 'test' }))
                 .rejects.toThrow(TimeoutError);
         });
     });
 
     describe('input validation', () => {
         it('should reject empty content', async () => {
-            await expect(safenest.detectBullying({ content: '' }))
+            await expect(tuteliq.detectBullying({ content: '' }))
                 .rejects.toThrow('Content is required');
         });
 
         it('should reject content exceeding max length', async () => {
             const longContent = 'a'.repeat(60000);
-            await expect(safenest.detectBullying({ content: longContent }))
+            await expect(tuteliq.detectBullying({ content: longContent }))
                 .rejects.toThrow('exceeds maximum length');
         });
 
         it('should reject empty messages array', async () => {
-            await expect(safenest.detectGrooming({ messages: [] }))
+            await expect(tuteliq.detectGrooming({ messages: [] }))
                 .rejects.toThrow('cannot be empty');
         });
 
         it('should reject too many messages', async () => {
             const messages = Array(150).fill({ role: 'child', content: 'test' });
-            await expect(safenest.detectGrooming({ messages }))
+            await expect(tuteliq.detectGrooming({ messages }))
                 .rejects.toThrow('exceeds maximum count');
         });
 
         it('should require content or messages for analyzeEmotions', async () => {
-            await expect(safenest.analyzeEmotions({}))
+            await expect(tuteliq.analyzeEmotions({}))
                 .rejects.toThrow('Either content or messages is required');
         });
 
         it('should require situation for getActionPlan', async () => {
-            await expect(safenest.getActionPlan({ situation: '' }))
+            await expect(tuteliq.getActionPlan({ situation: '' }))
                 .rejects.toThrow('Situation description is required');
         });
     });
@@ -493,27 +493,27 @@ describe('SafeNest', () => {
                 )
             );
 
-            await safenest.detectBullying({ content: 'test' });
+            await tuteliq.detectBullying({ content: 'test' });
 
-            expect(safenest.usage).toEqual({
+            expect(tuteliq.usage).toEqual({
                 limit: 10000,
                 used: 5000,
                 remaining: 5000,
             });
-            expect(safenest.rateLimit).toEqual({
+            expect(tuteliq.rateLimit).toEqual({
                 limit: 1000,
                 remaining: 999,
                 reset: undefined,
             });
-            expect(safenest.lastRequestId).toBe('req_123');
+            expect(tuteliq.lastRequestId).toBe('req_123');
         });
 
         it('should track latency', async () => {
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse({ is_bullying: false }));
 
-            await safenest.detectBullying({ content: 'test' });
+            await tuteliq.detectBullying({ content: 'test' });
 
-            expect(safenest.lastLatencyMs).toBeGreaterThanOrEqual(0);
+            expect(tuteliq.lastLatencyMs).toBeGreaterThanOrEqual(0);
         });
     });
 });
