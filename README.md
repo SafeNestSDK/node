@@ -284,6 +284,33 @@ console.log(result.overall_severity)            // Combined severity
 
 Supported image formats: png, jpg, jpeg, gif, webp (max 10MB).
 
+#### `voiceStream(config?, handlers?)`
+
+Real-time voice streaming with live safety analysis over WebSocket. Requires the `ws` package:
+
+```bash
+npm install ws
+```
+
+```typescript
+const session = tuteliq.voiceStream(
+  { intervalSeconds: 10, analysisTypes: ['bullying', 'unsafe'] },
+  {
+    onTranscription: (e) => console.log('Transcript:', e.text),
+    onAlert: (e) => console.log('Alert:', e.category, e.severity),
+  }
+)
+
+// Send audio chunks as they arrive
+session.sendAudio(audioBuffer)
+
+// End session and get summary
+const summary = await session.end()
+console.log('Risk:', summary.overall_risk)
+console.log('Score:', summary.overall_risk_score)
+console.log('Full transcript:', summary.transcript)
+```
+
 ---
 
 ### Emotional Analysis
@@ -517,7 +544,10 @@ The SDK automatically captures usage metadata from API responses:
 ```typescript
 const result = await tuteliq.detectBullying({ content: 'test' })
 
-// Access usage stats
+// Each response includes the number of credits consumed
+console.log(result.credits_used)     // 1
+
+// Access cumulative usage stats (from response headers)
 console.log(tuteliq.usage)
 // { limit: 10000, used: 5234, remaining: 4766 }
 
@@ -525,6 +555,23 @@ console.log(tuteliq.usage)
 console.log(tuteliq.lastRequestId)   // 'req_1a2b3c...'
 console.log(tuteliq.lastLatencyMs)   // 145
 ```
+
+### Weighted Credits
+
+Different endpoints consume different amounts of credits based on complexity:
+
+| Method | Credits | Notes |
+|--------|---------|-------|
+| `detectBullying()` | 1 | Single text analysis |
+| `detectUnsafe()` | 1 | Single text analysis |
+| `detectGrooming()` | 1 per 10 msgs | `ceil(messages / 10)`, min 1 |
+| `analyzeEmotions()` | 1 per 10 msgs | `ceil(messages / 10)`, min 1 |
+| `getActionPlan()` | 2 | Longer generation |
+| `generateReport()` | 3 | Structured output |
+| `analyzeVoice()` | 5 | Transcription + analysis |
+| `analyzeImage()` | 3 | Vision + OCR + analysis |
+
+The `credits_used` field is included in every response body. Credit balance is also available via the `X-Credits-Remaining` response header.
 
 ### Usage API Methods
 
@@ -903,15 +950,17 @@ npm run build
 
 Rate limits depend on your subscription tier:
 
-| Plan | Price | API Calls/month | Rate Limit | Features |
-|------|-------|-----------------|------------|----------|
+| Plan | Price | Credits/month | Rate Limit | Features |
+|------|-------|---------------|------------|----------|
 | **Starter** | Free | 1,000 | 60/min | 3 Safety endpoints, 1 API key, Community support |
-| **Indie** | $29/mo | 10,000 | 300/min | All 7 endpoints, 2 API keys, Dashboard analytics |
+| **Indie** | $29/mo | 10,000 | 300/min | All endpoints, 2 API keys, Dashboard analytics |
 | **Pro** | $99/mo | 50,000 | 1,000/min | 5 API keys, Webhooks, Custom policy, Priority latency |
 | **Business** | $349/mo | 200,000 | 5,000/min | 20 API keys, SSO, SLA 99.9%, HIPAA/SOC2 docs |
 | **Enterprise** | Custom | Unlimited | Custom | Dedicated infra, 24/7 support, SCIM, On-premise |
 
-**Credit Packs** (available to all tiers): 5K calls/$15 | 25K calls/$59 | 100K calls/$199
+**Credit Packs** (available to all tiers): 5K credits/$15 | 25K credits/$59 | 100K credits/$199
+
+> **Note:** Credits are weighted by endpoint complexity. A simple text check costs 1 credit, while voice analysis costs 5. See the [Weighted Credits](#weighted-credits) table above.
 
 ---
 

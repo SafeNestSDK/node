@@ -8,6 +8,7 @@ export * from './account.js';
 export * from './media.js';
 export * from './webhooks.js';
 export * from './pricing.js';
+export * from './voice-stream.js';
 
 // =============================================================================
 // Common Types

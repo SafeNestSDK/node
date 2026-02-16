@@ -69,6 +69,8 @@ export interface VoiceAnalysisResult {
     overall_risk_score: number;
     /** Overall severity level */
     overall_severity: ContentSeverity;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id */
     external_id?: string;
     /** Echo of provided customer_id */
@@ -128,6 +130,8 @@ export interface ImageAnalysisResult {
     overall_risk_score: number;
     /** Overall severity level */
     overall_severity: ContentSeverity;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id */
     external_id?: string;
     /** Echo of provided customer_id */

@@ -70,6 +70,10 @@ import {
     UsageHistoryResult,
     UsageByToolResult,
     UsageMonthlyResult,
+    // Voice stream types
+    VoiceStreamConfig,
+    VoiceStreamHandlers,
+    VoiceStreamSession,
 } from './types/index.js';
 
 import {
@@ -86,6 +90,7 @@ import {
 } from './errors.js';
 
 import { withRetry } from './utils/retry.js';
+import { createVoiceStream } from './voice-stream.js';
 
 /** Tuteliq API endpoint - locked to official server */
 const API_BASE_URL = 'https://api.tuteliq.ai';
@@ -1596,6 +1601,43 @@ export class Tuteliq {
             'GET',
             '/api/v1/usage/monthly'
         );
+    }
+
+    // =========================================================================
+    // Voice Streaming
+    // =========================================================================
+
+    /**
+     * Open a real-time voice streaming session over WebSocket.
+     *
+     * Requires the `ws` package as an optional peer dependency:
+     * ```bash
+     * npm install ws
+     * ```
+     *
+     * @example
+     * ```typescript
+     * const session = client.voiceStream(
+     *   { intervalSeconds: 10, analysisTypes: ['bullying', 'unsafe'] },
+     *   {
+     *     onTranscription: (e) => console.log('Transcript:', e.text),
+     *     onAlert: (e) => console.log('Alert:', e.category, e.severity),
+     *   }
+     * );
+     *
+     * // Send audio chunks as they arrive
+     * session.sendAudio(audioBuffer);
+     *
+     * // End session and get summary
+     * const summary = await session.end();
+     * console.log('Risk:', summary.overall_risk);
+     * ```
+     */
+    voiceStream(
+        config?: VoiceStreamConfig,
+        handlers?: VoiceStreamHandlers,
+    ): VoiceStreamSession {
+        return createVoiceStream(this.apiKey, config, handlers);
     }
 }
 

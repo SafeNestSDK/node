@@ -47,6 +47,8 @@ export interface BullyingResult {
     recommended_action: string;
     /** Risk score (0-1) */
     risk_score: number;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id (if any) */
     external_id?: string;
     /** Echo of provided customer_id (if any) */
@@ -90,6 +92,8 @@ export interface GroomingResult {
     risk_score: number;
     /** Recommended action to take */
     recommended_action: string;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id (if any) */
     external_id?: string;
     /** Echo of provided customer_id (if any) */
@@ -124,6 +128,8 @@ export interface UnsafeResult {
     rationale: string;
     /** Recommended action to take */
     recommended_action: string;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id (if any) */
     external_id?: string;
     /** Echo of provided customer_id (if any) */
@@ -158,6 +164,8 @@ export interface AnalyzeResult {
     unsafe?: UnsafeResult;
     /** Combined recommended action */
     recommended_action: string;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id (if any) */
     external_id?: string;
     /** Echo of provided customer_id (if any) */

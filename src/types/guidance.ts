@@ -29,6 +29,8 @@ export interface ActionPlanResult {
     tone: string;
     /** Approximate reading level */
     reading_level?: string;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id (if any) */
     external_id?: string;
     /** Echo of provided metadata (if any) */

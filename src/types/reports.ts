@@ -38,6 +38,8 @@ export interface ReportResult {
     categories: string[];
     /** Recommended next steps */
     recommended_next_steps: string[];
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id (if any) */
     external_id?: string;
     /** Echo of provided metadata (if any) */

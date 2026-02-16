@@ -149,6 +149,19 @@ export type {
     BreachResult,
     GetBreachesOptions,
 
+    // Voice stream types
+    VoiceStreamConfig,
+    VoiceStreamHandlers,
+    VoiceStreamSession,
+    VoiceStreamEvent,
+    VoiceReadyEvent,
+    VoiceTranscriptionEvent,
+    VoiceTranscriptionSegment,
+    VoiceAlertEvent,
+    VoiceSessionSummaryEvent,
+    VoiceConfigUpdatedEvent,
+    VoiceErrorEvent,
+
     // Legacy type aliases (backwards compatibility)
     DetectBullyingRequest,
     DetectBullyingResponse,

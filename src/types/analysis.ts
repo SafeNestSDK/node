@@ -38,6 +38,8 @@ export interface EmotionsResult {
     summary: string;
     /** Recommended follow-up action */
     recommended_followup: string;
+    /** Number of credits consumed by this request */
+    credits_used?: number;
     /** Echo of provided external_id (if any) */
     external_id?: string;
     /** Echo of provided metadata (if any) */
