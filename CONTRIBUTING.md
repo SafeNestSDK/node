@@ -156,7 +156,7 @@ Releases are managed by the Tuteliq team. Version numbers follow [Semantic Versi
 
 ## Getting Help
 
-- **Documentation**: [ai.tuteliq.ai/docs](https://ai.tuteliq.ai/docs)
+- **Documentation**: [docs.tuteliq.ai](https://docs.tuteliq.ai)
 - **Discord**: [discord.gg/tuteliq](https://discord.gg/tuteliq)
 - **Issues**: [GitHub Issues](https://github.com/tuteliq/sdk-typescript/issues)
 
