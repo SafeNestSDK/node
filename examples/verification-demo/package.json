@@ -1,0 +1,11 @@
+{
+  "name": "verification-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@tuteliq/sdk": "^2.2.2"
+  }
+}
