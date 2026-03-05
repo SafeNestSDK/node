@@ -82,6 +82,12 @@ import {
     VoiceStreamConfig,
     VoiceStreamHandlers,
     VoiceStreamSession,
+    // Verification types
+    CreateVerificationSessionInput,
+    VerificationSession,
+    VerificationSessionResult,
+    VerificationRetrieveResult,
+    IdentityRetrieveResult,
 } from './types/index.js';
 
 import {
@@ -1818,6 +1824,151 @@ export class Tuteliq {
         return this.requestWithRetry<UsageMonthlyResult>(
             'GET',
             '/api/v1/usage/monthly'
+        );
+    }
+
+    // =========================================================================
+    // Verification Methods
+    // =========================================================================
+
+    /**
+     * Create a verification session.
+     *
+     * Returns a session with a `url` to open in a new tab or web view.
+     * The web UI handles all document capture, liveness checks, and submission.
+     *
+     * @example
+     * ```typescript
+     * const session = await tuteliq.createVerificationSession({
+     *   mode: VerificationMode.AGE,
+     * })
+     *
+     * // Open session.url in a new tab or redirect the user
+     * console.log('Verification URL:', session.url)
+     * console.log('Expires:', session.expires_at)
+     * ```
+     */
+    async createVerificationSession(
+        input: CreateVerificationSessionInput
+    ): Promise<VerificationSession> {
+        if (!input.mode || (input.mode !== 'age' && input.mode !== 'identity')) {
+            throw new ValidationError('Verification mode must be "age" or "identity"');
+        }
+
+        const response = await this.requestWithRetry<{
+            session_id: string;
+            mobile_url: string;
+            expires_at: string;
+            mode: VerificationSession['mode'];
+        }>(
+            'POST',
+            '/api/v1/verify/session',
+            {
+                mode: input.mode,
+                ...(input.document_type && { document_type: input.document_type }),
+                ...(input.redirect_url && { redirect_url: input.redirect_url }),
+                ...(input.external_id && { external_id: input.external_id }),
+                ...(input.customer_id && { customer_id: input.customer_id }),
+                ...(input.metadata && { metadata: input.metadata }),
+            }
+        );
+
+        return {
+            session_id: response.session_id,
+            url: response.mobile_url,
+            expires_at: response.expires_at,
+            mode: response.mode,
+        };
+    }
+
+    /**
+     * Get the status and result of a verification session.
+     *
+     * Poll this endpoint to check when verification is complete.
+     *
+     * @example
+     * ```typescript
+     * const status = await tuteliq.getVerificationSession('sess_abc123')
+     *
+     * if (status.status === 'completed') {
+     *   if (status.age_result) {
+     *     console.log('Is minor:', status.age_result.is_minor)
+     *   }
+     *   if (status.identity_result) {
+     *     console.log('Name:', status.identity_result.full_name)
+     *   }
+     * }
+     * ```
+     */
+    async getVerificationSession(sessionId: string): Promise<VerificationSessionResult> {
+        if (!sessionId) {
+            throw new ValidationError('Session ID is required');
+        }
+
+        return this.requestWithRetry<VerificationSessionResult>(
+            'GET',
+            `/api/v1/verify/session/${sessionId}`
+        );
+    }
+
+    /**
+     * Cancel a verification session.
+     *
+     * @example
+     * ```typescript
+     * await tuteliq.cancelVerificationSession('sess_abc123')
+     * ```
+     */
+    async cancelVerificationSession(sessionId: string): Promise<void> {
+        if (!sessionId) {
+            throw new ValidationError('Session ID is required');
+        }
+
+        await this.requestWithRetry<void>(
+            'DELETE',
+            `/api/v1/verify/session/${sessionId}`
+        );
+    }
+
+    /**
+     * Retrieve a past age verification result by ID.
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.getAgeVerification('vrf_abc123')
+     * console.log('Status:', result.status)
+     * console.log('Is minor:', result.is_minor)
+     * ```
+     */
+    async getAgeVerification(verificationId: string): Promise<VerificationRetrieveResult> {
+        if (!verificationId) {
+            throw new ValidationError('Verification ID is required');
+        }
+
+        return this.requestWithRetry<VerificationRetrieveResult>(
+            'GET',
+            `/api/v1/verify/age/${verificationId}`
+        );
+    }
+
+    /**
+     * Retrieve a past identity verification result by ID.
+     *
+     * @example
+     * ```typescript
+     * const result = await tuteliq.getIdentityVerification('vrf_abc123')
+     * console.log('Status:', result.status)
+     * console.log('Name:', result.full_name)
+     * ```
+     */
+    async getIdentityVerification(verificationId: string): Promise<IdentityRetrieveResult> {
+        if (!verificationId) {
+            throw new ValidationError('Verification ID is required');
+        }
+
+        return this.requestWithRetry<IdentityRetrieveResult>(
+            'GET',
+            `/api/v1/verify/identity/${verificationId}`
         );
     }
 

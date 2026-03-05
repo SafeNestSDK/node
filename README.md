@@ -41,8 +41,8 @@ Tuteliq provides AI-powered content analysis to help protect children in digital
 - **Emotional State Analysis** — Understand emotional signals and concerning trends
 - **Action Guidance** — Generate age-appropriate response recommendations
 - **Incident Reports** — Create professional summaries for review
-- **Age Verification** *(Beta)* — Estimate age from ID documents and biometric selfies
-- **Identity Verification** *(Beta)* — Match selfie against ID with liveness detection
+- **Age Verification** — Session-based age verification with document capture and liveness detection
+- **Identity Verification** — Session-based identity verification with face matching and document authentication
 
 ### Why Tuteliq?
 
@@ -398,49 +398,156 @@ console.log(report.recommended_next_steps)   // ['Document incident', ...]
 
 ---
 
-### Verification (Beta)
+### Verification
 
-#### `verifyAge(input)`
+Session-based age and identity verification. The SDK creates a verification session and provides a URL — the user completes the verification flow (document capture, liveness checks, selfie) in a hosted web UI. Your application polls for the result.
 
-Estimates age from identity documents and/or biometric selfies. Requires **Pro** tier ($99/mo) or higher. Costs **5 credits** per call.
+#### How It Works
 
-> **Beta**: This endpoint is in beta. The API surface may change.
+1. **Create a session** — call `createVerificationSession()` with the desired mode
+2. **Open the URL** — redirect the user or open `session.url` in a new tab / web view
+3. **Poll for result** — call `getVerificationSession()` until `status` is `completed` or `failed`
+4. **Read the result** — access age or identity verification data from the response
+
+#### `createVerificationSession(input)`
+
+Creates a verification session and returns a URL for the user to complete the flow. Costs **10 credits** (age) or **15 credits** (identity) when the user completes the verification.
 
 ```typescript
-import fs from 'fs'
+import { Tuteliq, VerificationMode, DocumentType } from '@tuteliq/sdk'
 
-const ageResult = await tuteliq.verifyAge({
-  document: fs.createReadStream('id-front.jpg'),
-  selfie: fs.createReadStream('selfie.jpg'),
-  method: 'combined', // 'document' | 'biometric' | 'combined'
+const tuteliq = new Tuteliq(process.env.TUTELIQ_API_KEY)
+
+// Age verification
+const session = await tuteliq.createVerificationSession({
+  mode: VerificationMode.AGE,
 })
 
-console.log(ageResult.verified)       // true
-console.log(ageResult.estimated_age)  // 15
-console.log(ageResult.age_range)      // "13-15"
-console.log(ageResult.is_minor)       // true
-console.log(ageResult.confidence)     // 0.97
+console.log(session.session_id)  // 'abc123...'
+console.log(session.url)         // 'https://verify.tuteliq.ai/age/?session=...&token=...'
+console.log(session.expires_at)  // '2026-03-05T12:00:00Z'
+
+// Identity verification with options
+const session = await tuteliq.createVerificationSession({
+  mode: VerificationMode.IDENTITY,
+  document_type: DocumentType.PASSPORT,     // Optional hint for the web UI
+  redirect_url: 'https://example.com/done', // Optional redirect after completion
+  external_id: 'user_123',                  // Optional tracking
+  customer_id: 'cust_456',                  // Optional multi-tenant ID
+  metadata: { source: 'onboarding' },       // Optional custom data
+})
 ```
 
-#### `verifyIdentity(input)`
+#### `getVerificationSession(sessionId)`
 
-Verifies identity by matching a selfie against an identity document, with liveness detection and document authentication. Requires **Business** tier ($349/mo) or higher. Costs **10 credits** per call.
-
-> **Beta**: This endpoint is in beta. The API surface may change.
+Polls the status of a verification session. When `status` is `completed`, the result is available in `age_result` or `identity_result`.
 
 ```typescript
-import fs from 'fs'
+import { VerificationSessionStatus } from '@tuteliq/sdk'
 
-const identityResult = await tuteliq.verifyIdentity({
-  document: fs.createReadStream('id-front.jpg'),
-  selfie: fs.createReadStream('selfie.jpg'),
+const result = await tuteliq.getVerificationSession('abc123...')
+
+console.log(result.status)  // VerificationSessionStatus.COMPLETED
+console.log(result.mode)    // VerificationMode.AGE
+
+if (result.status === VerificationSessionStatus.COMPLETED) {
+  // Age verification result
+  if (result.age_result) {
+    console.log(result.age_result.is_minor)          // false
+    console.log(result.age_result.age_bracket)       // '18-25'
+    console.log(result.age_result.face_match)        // { matched: true, distance: 0.3, confidence: 0.95 }
+    console.log(result.age_result.liveness)           // { valid: true }
+    console.log(result.age_result.failure_reasons)    // []
+    console.log(result.age_result.credits_used)       // 10
+  }
+
+  // Identity verification result
+  if (result.identity_result) {
+    console.log(result.identity_result.full_name)      // 'John Doe'
+    console.log(result.identity_result.date_of_birth)  // '1990-01-15'
+    console.log(result.identity_result.document_type)  // 'passport'
+    console.log(result.identity_result.country_code)   // 'US'
+    console.log(result.identity_result.face_match)     // { matched: true, distance: 0.2, confidence: 0.98 }
+    console.log(result.identity_result.liveness)        // { valid: true }
+    console.log(result.identity_result.credits_used)    // 15
+  }
+}
+```
+
+#### `cancelVerificationSession(sessionId)`
+
+Cancels an active verification session. No credits are consumed.
+
+```typescript
+await tuteliq.cancelVerificationSession('abc123...')
+```
+
+#### `getAgeVerification(verificationId)`
+
+Retrieves a past age verification result by its verification ID.
+
+```typescript
+const result = await tuteliq.getAgeVerification('vrf_001')
+
+console.log(result.status)       // 'verified'
+console.log(result.age)          // 22
+console.log(result.is_minor)     // false
+console.log(result.created_at)   // '2026-03-05T11:00:00Z'
+```
+
+#### `getIdentityVerification(verificationId)`
+
+Retrieves a past identity verification result by its verification ID.
+
+```typescript
+const result = await tuteliq.getIdentityVerification('vrf_002')
+
+console.log(result.status)         // 'verified'
+console.log(result.full_name)      // 'John Doe'
+console.log(result.date_of_birth)  // '1990-01-15'
+console.log(result.document_type)  // 'passport'
+console.log(result.country_code)   // 'US'
+```
+
+#### Verification Enums
+
+The SDK provides enums to avoid hardcoded strings:
+
+```typescript
+import {
+  VerificationMode,           // AGE, IDENTITY
+  DocumentType,               // PASSPORT, ID_CARD, DRIVERS_LICENSE
+  VerificationStatus,         // VERIFIED, FAILED, NEEDS_REVIEW
+  VerificationSessionStatus,  // PENDING, IN_PROGRESS, COMPLETED, FAILED, EXPIRED, CANCELLED
+} from '@tuteliq/sdk'
+```
+
+#### Polling Example
+
+```typescript
+import { VerificationMode, VerificationSessionStatus } from '@tuteliq/sdk'
+
+const session = await tuteliq.createVerificationSession({
+  mode: VerificationMode.AGE,
 })
 
-console.log(identityResult.verified)               // true
-console.log(identityResult.match_score)            // 0.98
-console.log(identityResult.liveness_passed)        // true
-console.log(identityResult.document_authenticated) // true
-console.log(identityResult.is_minor)              // false
+// Open session.url in the user's browser...
+
+// Poll until complete
+const poll = setInterval(async () => {
+  const result = await tuteliq.getVerificationSession(session.session_id)
+
+  if (result.status === VerificationSessionStatus.COMPLETED) {
+    clearInterval(poll)
+    console.log('Verified! Is minor:', result.age_result?.is_minor)
+  }
+
+  if (result.status === VerificationSessionStatus.FAILED ||
+      result.status === VerificationSessionStatus.EXPIRED) {
+    clearInterval(poll)
+    console.log('Verification failed or expired')
+  }
+}, 5000)
 ```
 
 ---
@@ -627,8 +734,8 @@ Different endpoints consume different amounts of credits based on complexity:
 | `generateReport()` | 3 | Structured output |
 | `analyzeVoice()` | 5 | Transcription + analysis |
 | `analyzeImage()` | 3 | Vision + OCR + analysis |
-| `verifyAge()` | 5 | Document + biometric age estimation (Beta) |
-| `verifyIdentity()` | 10 | Document + selfie + liveness verification (Beta) |
+| `createVerificationSession()` (age) | 10 | Charged on completion |
+| `createVerificationSession()` (identity) | 15 | Charged on completion |
 
 The `credits_used` field is included in every response body. Credit balance is also available via the `X-Credits-Remaining` response header.
 
@@ -804,6 +911,17 @@ import type {
   AccountDeletionResult,
   AccountExportResult,
 
+  // Verification
+  CreateVerificationSessionInput,
+  VerificationSession,
+  VerificationSessionResult,
+  AgeVerificationResult,
+  IdentityVerificationResult,
+  VerificationRetrieveResult,
+  IdentityRetrieveResult,
+  FaceMatchResult,
+  LivenessResult,
+
   // Utilities
   Usage,
   ContextInput,
@@ -829,6 +947,10 @@ import {
   WebhookEventType,
   IncidentStatus,
   ErrorCode,
+  VerificationMode,
+  DocumentType,
+  VerificationStatus,
+  VerificationSessionStatus,
 } from '@tuteliq/sdk'
 
 // Type-safe severity checks
@@ -840,6 +962,12 @@ if (result.severity === Severity.CRITICAL) {
 if (result.grooming_risk === GroomingRisk.HIGH) {
   // Handle high grooming risk
 }
+
+// Verification mode
+const session = await tuteliq.createVerificationSession({
+  mode: VerificationMode.AGE,
+  document_type: DocumentType.PASSPORT,
+})
 
 // Error code handling
 if (error.code === ErrorCode.RATE_LIMIT_EXCEEDED) {

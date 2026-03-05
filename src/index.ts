@@ -15,6 +15,10 @@ export {
     ErrorCode,
     Tier,
     TIER_MONTHLY_LIMITS,
+    VerificationMode,
+    DocumentType,
+    VerificationStatus,
+    VerificationSessionStatus,
 } from './constants.js';
 
 // Error exports
@@ -174,6 +178,17 @@ export type {
     VoiceSessionSummaryEvent,
     VoiceConfigUpdatedEvent,
     VoiceErrorEvent,
+
+    // Verification types
+    CreateVerificationSessionInput,
+    VerificationSession,
+    VerificationSessionResult,
+    FaceMatchResult,
+    LivenessResult,
+    AgeVerificationResult,
+    IdentityVerificationResult,
+    VerificationRetrieveResult,
+    IdentityRetrieveResult,
 
     // Legacy type aliases (backwards compatibility)
     DetectBullyingRequest,

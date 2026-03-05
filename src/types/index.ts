@@ -10,6 +10,7 @@ export * from './webhooks.js';
 export * from './pricing.js';
 export * from './voice-stream.js';
 export * from './detection.js';
+export * from './verification.js';
 
 // =============================================================================
 // Common Types

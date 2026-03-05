@@ -239,6 +239,44 @@ export enum Detection {
 }
 
 /**
+ * Verification mode for age or identity verification sessions
+ */
+export enum VerificationMode {
+    AGE = 'age',
+    IDENTITY = 'identity',
+}
+
+/**
+ * Document type hint for verification sessions
+ */
+export enum DocumentType {
+    PASSPORT = 'passport',
+    ID_CARD = 'id_card',
+    DRIVERS_LICENSE = 'drivers_license',
+}
+
+/**
+ * Verification result status
+ */
+export enum VerificationStatus {
+    VERIFIED = 'verified',
+    FAILED = 'failed',
+    NEEDS_REVIEW = 'needs_review',
+}
+
+/**
+ * Verification session lifecycle status
+ */
+export enum VerificationSessionStatus {
+    PENDING = 'pending',
+    IN_PROGRESS = 'in_progress',
+    COMPLETED = 'completed',
+    FAILED = 'failed',
+    EXPIRED = 'expired',
+    CANCELLED = 'cancelled',
+}
+
+/**
  * Supported language codes
  */
 export const SUPPORTED_LANGUAGES = Object.values(Language);

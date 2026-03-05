@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuteliq Verification Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f1117; color: #e4e4e7; min-height: 100vh; }
+
+        .container { max-width: 720px; margin: 0 auto; padding: 48px 24px; }
+
+        h1 { font-size: 1.5rem; font-weight: 600; margin-bottom: 8px; }
+        .subtitle { color: #a1a1aa; margin-bottom: 40px; font-size: 0.9rem; }
+
+        /* Card */
+        .card { background: #1a1b23; border: 1px solid #27272a; border-radius: 12px; padding: 28px; margin-bottom: 24px; }
+        .card h2 { font-size: 1rem; font-weight: 500; margin-bottom: 20px; color: #fafafa; }
+
+        /* Form */
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 0.8rem; color: #a1a1aa; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+        select, input[type="password"], input[type="text"] {
+            width: 100%; padding: 10px 12px; background: #27272a; border: 1px solid #3f3f46;
+            border-radius: 8px; color: #fafafa; font-size: 0.9rem;
+        }
+        select { appearance: none; cursor: pointer; }
+        select:focus, input:focus { outline: none; border-color: #6366f1; }
+        input::placeholder { color: #52525b; }
+
+        /* API key row */
+        .api-key-row { display: flex; gap: 8px; align-items: center; }
+        .api-key-row input { flex: 1; }
+        .toggle-visibility { background: none; border: 1px solid #3f3f46; border-radius: 8px; color: #a1a1aa; padding: 10px 12px; cursor: pointer; font-size: 0.8rem; white-space: nowrap; }
+        .toggle-visibility:hover { border-color: #6366f1; color: #fafafa; }
+        .api-key-status { font-size: 0.75rem; margin-top: 4px; }
+        .api-key-status.saved { color: #4ade80; }
+        .api-key-status.missing { color: #f87171; }
+
+        .btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+        .btn-primary { background: #6366f1; color: white; }
+        .btn-primary:hover { background: #4f46e5; }
+        .btn-primary:disabled { background: #3f3f46; color: #71717a; cursor: not-allowed; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-danger:hover { background: #b91c1c; }
+        .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
+
+        .btn-row { display: flex; gap: 12px; margin-top: 20px; }
+
+        /* Session info */
+        .session-info { display: none; }
+        .session-info.active { display: block; }
+
+        .field { margin-bottom: 12px; }
+        .field-label { font-size: 0.75rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
+        .field-value { font-size: 0.9rem; word-break: break-all; }
+        .field-value a { color: #818cf8; text-decoration: none; }
+        .field-value a:hover { text-decoration: underline; }
+
+        /* Status badge */
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.03em; }
+        .badge-pending { background: #422006; color: #fbbf24; }
+        .badge-in_progress { background: #172554; color: #60a5fa; }
+        .badge-completed { background: #052e16; color: #4ade80; }
+        .badge-failed { background: #450a0a; color: #f87171; }
+        .badge-expired { background: #27272a; color: #a1a1aa; }
+        .badge-cancelled { background: #27272a; color: #a1a1aa; }
+
+        /* Open verification button */
+        .open-verification { display: none; margin-top: 20px; text-align: center; }
+        .open-verification.active { display: block; }
+        .btn-open { display: inline-flex; align-items: center; gap: 8px; padding: 14px 32px; background: #16a34a; color: white; border: none; border-radius: 10px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.15s; text-decoration: none; }
+        .btn-open:hover { background: #15803d; }
+        .btn-open svg { width: 18px; height: 18px; }
+        .open-hint { margin-top: 8px; font-size: 0.8rem; color: #71717a; }
+
+        /* Polling indicator */
+        .polling-indicator { display: none; margin-top: 16px; padding: 12px 16px; background: #172554; border: 1px solid #1e3a8a; border-radius: 8px; text-align: center; }
+        .polling-indicator.active { display: block; }
+        .polling-indicator .dot { display: inline-block; width: 8px; height: 8px; background: #60a5fa; border-radius: 50%; margin-right: 8px; animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .polling-indicator span { font-size: 0.85rem; color: #93c5fd; }
+
+        /* Result panel */
+        .result-panel { margin-top: 16px; padding: 16px; background: #111118; border-radius: 8px; }
+        .result-panel pre { font-size: 0.8rem; line-height: 1.5; color: #a1a1aa; white-space: pre-wrap; word-break: break-word; }
+
+        /* Log */
+        .log { margin-top: 24px; }
+        .log h3 { font-size: 0.8rem; color: #71717a; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+        .log-entries { max-height: 200px; overflow-y: auto; font-size: 0.8rem; font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace; }
+        .log-entry { padding: 4px 0; border-bottom: 1px solid #1e1e24; color: #71717a; }
+        .log-entry .time { color: #52525b; margin-right: 8px; }
+        .log-entry.error { color: #f87171; }
+        .log-entry.success { color: #4ade80; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tuteliq Verification Demo</h1>
+        <p class="subtitle">Test age and identity verification using the Node SDK</p>
+
+        <!-- API Key -->
+        <div class="card" id="api-key-card">
+            <h2>API Key</h2>
+            <div class="form-group">
+                <label>Tuteliq API Key</label>
+                <div class="api-key-row">
+                    <input type="password" id="api-key" placeholder="Enter your Tuteliq API key" autocomplete="off" />
+                    <button class="toggle-visibility" onclick="toggleApiKeyVisibility()">Show</button>
+                </div>
+                <div class="api-key-status missing" id="api-key-status">No API key set</div>
+            </div>
+        </div>
+
+        <!-- Step 1: Create session -->
+        <div class="card" id="create-card">
+            <h2>1. Create Verification Session</h2>
+            <div class="form-group">
+                <label>Verification Mode</label>
+                <select id="mode">
+                    <option value="age">Age Verification</option>
+                    <option value="identity">Identity Verification</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Document Type (optional)</label>
+                <select id="document_type">
+                    <option value="">Auto-detect</option>
+                    <option value="passport">Passport</option>
+                    <option value="id_card">ID Card</option>
+                    <option value="drivers_license">Driver's License</option>
+                </select>
+            </div>
+            <div class="btn-row">
+                <button class="btn btn-primary" id="create-btn" onclick="createSession()">
+                    Start Verification
+                </button>
+            </div>
+        </div>
+
+        <!-- Step 2: Session active -->
+        <div class="card session-info" id="session-card">
+            <h2>2. Verification Session</h2>
+
+            <div class="field">
+                <div class="field-label">Session ID</div>
+                <div class="field-value" id="session-id">&mdash;</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Status</div>
+                <div class="field-value" id="session-status">&mdash;</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Mode</div>
+                <div class="field-value" id="session-mode">&mdash;</div>
+            </div>
+            <div class="field">
+                <div class="field-label">Verification URL</div>
+                <div class="field-value"><a id="session-url" href="#" target="_blank">&mdash;</a></div>
+            </div>
+            <div class="field">
+                <div class="field-label">Expires At</div>
+                <div class="field-value" id="session-expires">&mdash;</div>
+            </div>
+
+            <!-- Open in new tab -->
+            <div class="open-verification" id="open-verification">
+                <a class="btn-open" id="open-btn" href="#" target="_blank" rel="noopener">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M4.25 5.5a.75.75 0 0 0-.75.75v8.5c0 .414.336.75.75.75h8.5a.75.75 0 0 0 .75-.75v-4a.75.75 0 0 1 1.5 0v4A2.25 2.25 0 0 1 12.75 17h-8.5A2.25 2.25 0 0 1 2 14.75v-8.5A2.25 2.25 0 0 1 4.25 4h5a.75.75 0 0 1 0 1.5h-5Zm7.25-.56a.75.75 0 0 1 .75-.75h3.5a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0V6.31l-5.47 5.47a.75.75 0 0 1-1.06-1.06l5.47-5.47H12.5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /></svg>
+                    Open Verification
+                </a>
+                <div class="open-hint">Opens in a new tab. This page will monitor the progress.</div>
+            </div>
+
+            <!-- Polling indicator -->
+            <div class="polling-indicator" id="polling-indicator">
+                <div class="dot"></div>
+                <span>Waiting for verification to complete...</span>
+            </div>
+
+            <div class="btn-row">
+                <button class="btn btn-primary btn-sm" onclick="pollSession()">Poll Now</button>
+                <button class="btn btn-danger btn-sm" onclick="cancelSession()">Cancel Session</button>
+                <button class="btn btn-sm" style="background:#3f3f46; color:#e4e4e7;" onclick="resetUI()">New Session</button>
+            </div>
+
+            <!-- Result -->
+            <div class="result-panel hidden" id="result-panel">
+                <div class="field-label" style="margin-bottom:8px;">Verification Result</div>
+                <pre id="result-json"></pre>
+            </div>
+        </div>
+
+        <!-- Log -->
+        <div class="card log">
+            <h3>Event Log</h3>
+            <div class="log-entries" id="log"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentSessionId = null;
+        let pollInterval = null;
+
+        // ── API key helpers ─────────────────────────────────────────────────
+        const apiKeyInput = document.getElementById('api-key');
+        const apiKeyStatusEl = document.getElementById('api-key-status');
+
+        // Persist in sessionStorage so it survives page reloads but not browser restarts
+        const STORAGE_KEY = 'tuteliq_demo_api_key';
+
+        function getApiKey() {
+            return apiKeyInput.value.trim();
+        }
+
+        function apiHeaders(extra = {}) {
+            return { 'X-API-Key': getApiKey(), ...extra };
+        }
+
+        function updateApiKeyStatus() {
+            const key = getApiKey();
+            if (key.length > 0) {
+                apiKeyStatusEl.textContent = `Key set (${key.length} chars)`;
+                apiKeyStatusEl.className = 'api-key-status saved';
+            } else {
+                apiKeyStatusEl.textContent = 'No API key set';
+                apiKeyStatusEl.className = 'api-key-status missing';
+            }
+        }
+
+        function toggleApiKeyVisibility() {
+            const input = apiKeyInput;
+            const btn = input.nextElementSibling;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                btn.textContent = 'Show';
+            }
+        }
+
+        // Restore from sessionStorage
+        const savedKey = sessionStorage.getItem(STORAGE_KEY);
+        if (savedKey) {
+            apiKeyInput.value = savedKey;
+            updateApiKeyStatus();
+        }
+
+        apiKeyInput.addEventListener('input', () => {
+            updateApiKeyStatus();
+            sessionStorage.setItem(STORAGE_KEY, getApiKey());
+        });
+
+        // ── Logging ─────────────────────────────────────────────────────────
+        function log(message, type = '') {
+            const el = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `<span class="time">${time}</span>${message}`;
+            el.prepend(entry);
+        }
+
+        function statusBadge(status) {
+            return `<span class="badge badge-${status}">${status.replace('_', ' ')}</span>`;
+        }
+
+        // ── Session actions ─────────────────────────────────────────────────
+        async function createSession() {
+            if (!getApiKey()) {
+                log('Please enter your API key first', 'error');
+                apiKeyInput.focus();
+                return;
+            }
+
+            const mode = document.getElementById('mode').value;
+            const documentType = document.getElementById('document_type').value;
+            const btn = document.getElementById('create-btn');
+
+            btn.disabled = true;
+            btn.textContent = 'Creating...';
+            log(`Creating ${mode} verification session...`);
+
+            try {
+                const body = { mode };
+                if (documentType) body.document_type = documentType;
+
+                const res = await fetch('/api/session', {
+                    method: 'POST',
+                    headers: apiHeaders({ 'Content-Type': 'application/json' }),
+                    body: JSON.stringify(body),
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to create session');
+                }
+
+                currentSessionId = data.session_id;
+
+                // Update UI
+                document.getElementById('session-id').textContent = data.session_id;
+                document.getElementById('session-status').innerHTML = statusBadge('pending');
+                document.getElementById('session-mode').textContent = data.mode;
+                document.getElementById('session-url').href = data.url;
+                document.getElementById('session-url').textContent = data.url;
+                document.getElementById('session-expires').textContent = new Date(data.expires_at).toLocaleString();
+                document.getElementById('open-btn').href = data.url;
+                document.getElementById('open-verification').classList.add('active');
+                document.getElementById('polling-indicator').classList.add('active');
+                document.getElementById('session-card').classList.add('active');
+
+                log(`Session created: ${data.session_id}`, 'success');
+                log(`Verification URL: ${data.url}`);
+
+                // Start auto-polling every 5 seconds
+                startPolling();
+            } catch (err) {
+                log(`Error: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Start Verification';
+            }
+        }
+
+        async function pollSession() {
+            if (!currentSessionId) return;
+
+            log(`Polling session ${currentSessionId}...`);
+
+            try {
+                const res = await fetch(`/api/session/${currentSessionId}`, {
+                    headers: apiHeaders(),
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to poll session');
+                }
+
+                document.getElementById('session-status').innerHTML = statusBadge(data.status);
+                log(`Status: ${data.status}`);
+
+                // Show result if completed or failed
+                if (data.status === 'completed' || data.status === 'failed') {
+                    stopPolling();
+                    document.getElementById('polling-indicator').classList.remove('active');
+                    document.getElementById('open-verification').classList.remove('active');
+
+                    // Try specific result fields first, fall back to full response
+                    const result = data.age_result || data.identity_result || data;
+                    document.getElementById('result-panel').classList.remove('hidden');
+                    document.getElementById('result-json').textContent = JSON.stringify(result, null, 2);
+                    log(`Verification ${data.status}!`, data.status === 'completed' ? 'success' : 'error');
+                }
+
+                if (data.status === 'expired' || data.status === 'cancelled') {
+                    stopPolling();
+                    document.getElementById('polling-indicator').classList.remove('active');
+                    document.getElementById('open-verification').classList.remove('active');
+                    log(`Session ${data.status}`, 'error');
+                }
+            } catch (err) {
+                log(`Poll error: ${err.message}`, 'error');
+            }
+        }
+
+        async function cancelSession() {
+            if (!currentSessionId) return;
+
+            log(`Cancelling session ${currentSessionId}...`);
+
+            try {
+                const res = await fetch(`/api/session/${currentSessionId}`, {
+                    method: 'DELETE',
+                    headers: apiHeaders(),
+                });
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || 'Failed to cancel session');
+                }
+
+                stopPolling();
+                document.getElementById('session-status').innerHTML = statusBadge('cancelled');
+                log('Session cancelled', 'success');
+            } catch (err) {
+                log(`Cancel error: ${err.message}`, 'error');
+            }
+        }
+
+        function startPolling() {
+            stopPolling();
+            pollInterval = setInterval(pollSession, 5000);
+            log('Auto-polling every 5s');
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+                log('Polling stopped');
+            }
+        }
+
+        function resetUI() {
+            stopPolling();
+            currentSessionId = null;
+            document.getElementById('session-card').classList.remove('active');
+            document.getElementById('result-panel').classList.add('hidden');
+            document.getElementById('open-verification').classList.remove('active');
+            document.getElementById('polling-indicator').classList.remove('active');
+            log('UI reset — ready for a new session');
+        }
+    </script>
+</body>
+</html>

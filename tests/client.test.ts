@@ -7,6 +7,7 @@ import {
     ServerError,
     TimeoutError,
 } from '../src/errors.js';
+import { VerificationMode, DocumentType, VerificationSessionStatus, VerificationStatus } from '../src/constants.js';
 
 // Helper to create mock response
 function mockFetchResponse(data: unknown, options: { ok?: boolean; status?: number; headers?: Record<string, string> } = {}) {
@@ -472,6 +473,181 @@ describe('Tuteliq', () => {
         it('should require situation for getActionPlan', async () => {
             await expect(tuteliq.getActionPlan({ situation: '' }))
                 .rejects.toThrow('Situation description is required');
+        });
+    });
+
+    describe('verification', () => {
+        it('should create an age verification session and map mobile_url to url', async () => {
+            const mockResponse = {
+                session_id: 'sess_abc123',
+                mobile_url: 'https://verify.tuteliq.ai/age/?session=sess_abc123&token=tok_xyz789',
+                expires_at: '2026-03-05T12:00:00Z',
+                mode: 'age',
+            };
+
+            vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
+
+            const result = await tuteliq.createVerificationSession({ mode: VerificationMode.AGE });
+
+            expect(result.session_id).toBe('sess_abc123');
+            expect(result.url).toBe('https://verify.tuteliq.ai/age/?session=sess_abc123&token=tok_xyz789');
+            expect(result.mode).toBe(VerificationMode.AGE);
+            expect(fetch).toHaveBeenCalledWith(
+                `${API_BASE_URL}/api/v1/verify/session`,
+                expect.objectContaining({ method: 'POST' })
+            );
+
+            const call = vi.mocked(fetch).mock.calls[0];
+            const body = JSON.parse(call[1]?.body as string);
+            expect(body.mode).toBe('age');
+        });
+
+        it('should create an identity verification session with options', async () => {
+            const mockResponse = {
+                session_id: 'sess_def456',
+                mobile_url: 'https://verify.tuteliq.ai/identity/?session=sess_def456&token=tok_abc123',
+                expires_at: '2026-03-05T12:00:00Z',
+                mode: 'identity',
+            };
+
+            vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
+
+            const result = await tuteliq.createVerificationSession({
+                mode: VerificationMode.IDENTITY,
+                document_type: DocumentType.PASSPORT,
+                redirect_url: 'https://example.com/done',
+                external_id: 'ext_123',
+                customer_id: 'cust_456',
+                metadata: { source: 'onboarding' },
+            });
+
+            expect(result.mode).toBe(VerificationMode.IDENTITY);
+
+            const call = vi.mocked(fetch).mock.calls[0];
+            const body = JSON.parse(call[1]?.body as string);
+            expect(body.mode).toBe(VerificationMode.IDENTITY);
+            expect(body.document_type).toBe(DocumentType.PASSPORT);
+            expect(body.redirect_url).toBe('https://example.com/done');
+            expect(body.external_id).toBe('ext_123');
+            expect(body.customer_id).toBe('cust_456');
+            expect(body.metadata).toEqual({ source: 'onboarding' });
+        });
+
+        it('should reject invalid verification mode', async () => {
+            await expect(
+                tuteliq.createVerificationSession({ mode: 'invalid' as VerificationMode })
+            ).rejects.toThrow(ValidationError);
+        });
+
+        it('should get verification session status', async () => {
+            const mockResponse = {
+                session_id: 'sess_abc123',
+                status: VerificationSessionStatus.COMPLETED,
+                mode: VerificationMode.AGE,
+                age_result: {
+                    verification_id: 'vrf_001',
+                    status: VerificationStatus.VERIFIED,
+                    age_bracket: '18-25',
+                    is_minor: false,
+                    face_match: { matched: true, distance: 0.3, confidence: 0.95 },
+                    liveness: { valid: true },
+                    failure_reasons: [],
+                    credits_used: 10,
+                },
+                created_at: '2026-03-05T11:00:00Z',
+                expires_at: '2026-03-05T12:00:00Z',
+            };
+
+            vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
+
+            const result = await tuteliq.getVerificationSession('sess_abc123');
+
+            expect(result.status).toBe(VerificationSessionStatus.COMPLETED);
+            expect(result.age_result?.is_minor).toBe(false);
+            expect(result.age_result?.face_match?.matched).toBe(true);
+            expect(fetch).toHaveBeenCalledWith(
+                `${API_BASE_URL}/api/v1/verify/session/sess_abc123`,
+                expect.objectContaining({ method: 'GET' })
+            );
+        });
+
+        it('should reject empty session ID for get', async () => {
+            await expect(tuteliq.getVerificationSession('')).rejects.toThrow('Session ID is required');
+        });
+
+        it('should cancel a verification session', async () => {
+            vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(undefined));
+
+            await tuteliq.cancelVerificationSession('sess_abc123');
+
+            expect(fetch).toHaveBeenCalledWith(
+                `${API_BASE_URL}/api/v1/verify/session/sess_abc123`,
+                expect.objectContaining({ method: 'DELETE' })
+            );
+        });
+
+        it('should reject empty session ID for cancel', async () => {
+            await expect(tuteliq.cancelVerificationSession('')).rejects.toThrow('Session ID is required');
+        });
+
+        it('should retrieve an age verification result', async () => {
+            const mockResponse = {
+                verification_id: 'vrf_001',
+                status: VerificationStatus.VERIFIED,
+                age: 22,
+                is_minor: false,
+                face_matched: true,
+                face_confidence: 0.95,
+                liveness_valid: true,
+                failure_reasons: [],
+                created_at: '2026-03-05T11:00:00Z',
+            };
+
+            vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
+
+            const result = await tuteliq.getAgeVerification('vrf_001');
+
+            expect(result.status).toBe(VerificationStatus.VERIFIED);
+            expect(result.is_minor).toBe(false);
+            expect(fetch).toHaveBeenCalledWith(
+                `${API_BASE_URL}/api/v1/verify/age/vrf_001`,
+                expect.objectContaining({ method: 'GET' })
+            );
+        });
+
+        it('should reject empty verification ID for age', async () => {
+            await expect(tuteliq.getAgeVerification('')).rejects.toThrow('Verification ID is required');
+        });
+
+        it('should retrieve an identity verification result', async () => {
+            const mockResponse = {
+                verification_id: 'vrf_002',
+                status: VerificationStatus.VERIFIED,
+                full_name: 'John Doe',
+                date_of_birth: '1990-01-15',
+                document_type: DocumentType.PASSPORT,
+                country_code: 'US',
+                face_matched: true,
+                face_confidence: 0.92,
+                liveness_valid: true,
+                failure_reasons: [],
+                created_at: '2026-03-05T11:00:00Z',
+            };
+
+            vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
+
+            const result = await tuteliq.getIdentityVerification('vrf_002');
+
+            expect(result.status).toBe(VerificationStatus.VERIFIED);
+            expect(result.full_name).toBe('John Doe');
+            expect(fetch).toHaveBeenCalledWith(
+                `${API_BASE_URL}/api/v1/verify/identity/vrf_002`,
+                expect.objectContaining({ method: 'GET' })
+            );
+        });
+
+        it('should reject empty verification ID for identity', async () => {
+            await expect(tuteliq.getIdentityVerification('')).rejects.toThrow('Verification ID is required');
         });
     });
 
