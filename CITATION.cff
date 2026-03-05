@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+title: Tuteliq Node.js SDK
+message: "If you use this software, please cite it using this metadata."
+type: software
+authors:
+  - name: Tuteliq
+    website: https://tuteliq.ai
+repository-code: https://github.com/Tuteliq/node
+url: https://tuteliq.ai
+abstract: >-
+  Official Node.js/TypeScript SDK for Tuteliq — AI-powered child safety API for detecting bullying, grooming, and unsafe content
+keywords:
+  - child safety
+  - Node.js
+  - TypeScript
+  - content moderation
+  - KOSA
+  - SDK
+  - npm
+  - online safety
+  - grooming detection
+  - age verification
+  - identity verification
+license: MIT
