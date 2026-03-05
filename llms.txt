@@ -21,6 +21,8 @@ const result = await tuteliq.detectUnsafe({ text: 'content to check', ageGroup: 
 - Age group calibration (under-10, 10-12, 13-15, 14-17)
 - Automatic retries and configurable timeouts
 - WebSocket streaming for real-time voice/video
+- Age Verification (Beta) — estimate age from ID documents and biometric selfies (Pro tier+, 5 credits, POST /v1/verification/age)
+- Identity Verification (Beta) — match selfie against ID document with liveness detection (Business tier+, 10 credits, POST /v1/verification/identity)
 
 ## Links
 - Website: https://tuteliq.ai

@@ -41,6 +41,8 @@ Tuteliq provides AI-powered content analysis to help protect children in digital
 - **Emotional State Analysis** — Understand emotional signals and concerning trends
 - **Action Guidance** — Generate age-appropriate response recommendations
 - **Incident Reports** — Create professional summaries for review
+- **Age Verification** *(Beta)* — Estimate age from ID documents and biometric selfies
+- **Identity Verification** *(Beta)* — Match selfie against ID with liveness detection
 
 ### Why Tuteliq?
 
@@ -396,6 +398,53 @@ console.log(report.recommended_next_steps)   // ['Document incident', ...]
 
 ---
 
+### Verification (Beta)
+
+#### `verifyAge(input)`
+
+Estimates age from identity documents and/or biometric selfies. Requires **Pro** tier ($99/mo) or higher. Costs **5 credits** per call.
+
+> **Beta**: This endpoint is in beta. The API surface may change.
+
+```typescript
+import fs from 'fs'
+
+const ageResult = await tuteliq.verifyAge({
+  document: fs.createReadStream('id-front.jpg'),
+  selfie: fs.createReadStream('selfie.jpg'),
+  method: 'combined', // 'document' | 'biometric' | 'combined'
+})
+
+console.log(ageResult.verified)       // true
+console.log(ageResult.estimated_age)  // 15
+console.log(ageResult.age_range)      // "13-15"
+console.log(ageResult.is_minor)       // true
+console.log(ageResult.confidence)     // 0.97
+```
+
+#### `verifyIdentity(input)`
+
+Verifies identity by matching a selfie against an identity document, with liveness detection and document authentication. Requires **Business** tier ($349/mo) or higher. Costs **10 credits** per call.
+
+> **Beta**: This endpoint is in beta. The API surface may change.
+
+```typescript
+import fs from 'fs'
+
+const identityResult = await tuteliq.verifyIdentity({
+  document: fs.createReadStream('id-front.jpg'),
+  selfie: fs.createReadStream('selfie.jpg'),
+})
+
+console.log(identityResult.verified)               // true
+console.log(identityResult.match_score)            // 0.98
+console.log(identityResult.liveness_passed)        // true
+console.log(identityResult.document_authenticated) // true
+console.log(identityResult.is_minor)              // false
+```
+
+---
+
 ### Webhooks
 
 #### `listWebhooks()`
@@ -578,6 +627,8 @@ Different endpoints consume different amounts of credits based on complexity:
 | `generateReport()` | 3 | Structured output |
 | `analyzeVoice()` | 5 | Transcription + analysis |
 | `analyzeImage()` | 3 | Vision + OCR + analysis |
+| `verifyAge()` | 5 | Document + biometric age estimation (Beta) |
+| `verifyIdentity()` | 10 | Document + selfie + liveness verification (Beta) |
 
 The `credits_used` field is included in every response body. Credit balance is also available via the `X-Credits-Remaining` response header.
 
