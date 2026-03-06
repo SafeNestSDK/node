@@ -440,37 +440,30 @@ const session = await tuteliq.createVerificationSession({
 
 #### `getVerificationSession(sessionId)`
 
-Polls the status of a verification session. When `status` is `completed`, the result is available in `age_result` or `identity_result`.
+Polls the status of a verification session. When `status` is `completed`, the result is available in the `result` field.
 
 ```typescript
 import { VerificationSessionStatus } from '@tuteliq/sdk'
 
-const result = await tuteliq.getVerificationSession('abc123...')
+const session = await tuteliq.getVerificationSession('abc123...')
 
-console.log(result.status)  // VerificationSessionStatus.COMPLETED
-console.log(result.mode)    // VerificationMode.AGE
+console.log(session.status)  // VerificationSessionStatus.COMPLETED
+console.log(session.mode)    // VerificationMode.AGE
 
-if (result.status === VerificationSessionStatus.COMPLETED) {
-  // Age verification result
-  if (result.age_result) {
-    console.log(result.age_result.is_minor)          // false
-    console.log(result.age_result.age_bracket)       // '18-25'
-    console.log(result.age_result.face_match)        // { matched: true, distance: 0.3, confidence: 0.95 }
-    console.log(result.age_result.liveness)           // { valid: true }
-    console.log(result.age_result.failure_reasons)    // []
-    console.log(result.age_result.credits_used)       // 10
-  }
+if (session.status === VerificationSessionStatus.COMPLETED && session.result) {
+  // Age verification result (when mode is AGE)
+  console.log(session.result.is_minor)          // false
+  console.log(session.result.age_bracket)       // '18-25'
+  console.log(session.result.face_match)        // { matched: true, distance: 0.3, confidence: 0.95 }
+  console.log(session.result.liveness)          // { valid: true }
+  console.log(session.result.failure_reasons)   // []
+  console.log(session.result.credits_used)      // 10
 
-  // Identity verification result
-  if (result.identity_result) {
-    console.log(result.identity_result.full_name)      // 'John Doe'
-    console.log(result.identity_result.date_of_birth)  // '1990-01-15'
-    console.log(result.identity_result.document_type)  // 'passport'
-    console.log(result.identity_result.country_code)   // 'US'
-    console.log(result.identity_result.face_match)     // { matched: true, distance: 0.2, confidence: 0.98 }
-    console.log(result.identity_result.liveness)        // { valid: true }
-    console.log(result.identity_result.credits_used)    // 15
-  }
+  // Identity verification result (when mode is IDENTITY) also includes:
+  // session.result.full_name      // 'John Doe'
+  // session.result.date_of_birth  // '1990-01-15'
+  // session.result.document_type  // 'passport'
+  // session.result.country_code   // 'US'
 }
 ```
 
@@ -535,15 +528,15 @@ const session = await tuteliq.createVerificationSession({
 
 // Poll until complete
 const poll = setInterval(async () => {
-  const result = await tuteliq.getVerificationSession(session.session_id)
+  const status = await tuteliq.getVerificationSession(session.session_id)
 
-  if (result.status === VerificationSessionStatus.COMPLETED) {
+  if (status.status === VerificationSessionStatus.COMPLETED) {
     clearInterval(poll)
-    console.log('Verified! Is minor:', result.age_result?.is_minor)
+    console.log('Verified! Is minor:', status.result?.is_minor)
   }
 
-  if (result.status === VerificationSessionStatus.FAILED ||
-      result.status === VerificationSessionStatus.EXPIRED) {
+  if (status.status === VerificationSessionStatus.FAILED ||
+      status.status === VerificationSessionStatus.EXPIRED) {
     clearInterval(poll)
     console.log('Verification failed or expired')
   }
