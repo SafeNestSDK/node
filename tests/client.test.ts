@@ -543,19 +543,11 @@ describe('Tuteliq', () => {
             const mockResponse = {
                 session_id: 'sess_abc123',
                 status: VerificationSessionStatus.COMPLETED,
-                mode: VerificationMode.AGE,
-                age_result: {
-                    verification_id: 'vrf_001',
+                result: {
                     status: VerificationStatus.VERIFIED,
-                    age_bracket: '18-25',
+                    age: 25,
                     is_minor: false,
-                    face_match: { matched: true, distance: 0.3, confidence: 0.95 },
-                    liveness: { valid: true },
-                    failure_reasons: [],
-                    credits_used: 10,
                 },
-                created_at: '2026-03-05T11:00:00Z',
-                expires_at: '2026-03-05T12:00:00Z',
             };
 
             vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockResponse));
@@ -563,8 +555,8 @@ describe('Tuteliq', () => {
             const result = await tuteliq.getVerificationSession('sess_abc123');
 
             expect(result.status).toBe(VerificationSessionStatus.COMPLETED);
-            expect(result.age_result?.is_minor).toBe(false);
-            expect(result.age_result?.face_match?.matched).toBe(true);
+            expect(result.result).toBeDefined();
+            expect((result.result as any)?.is_minor).toBe(false);
             expect(fetch).toHaveBeenCalledWith(
                 `${API_BASE_URL}/api/v1/verify/session/sess_abc123`,
                 expect.objectContaining({ method: 'GET' })

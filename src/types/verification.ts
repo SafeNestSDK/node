@@ -54,15 +54,13 @@ export interface VerificationSessionResult {
     /** Current session status */
     status: VerificationSessionStatus;
     /** Verification mode */
-    mode: VerificationMode;
-    /** Age verification result (present when mode is 'age' and status is 'completed') */
-    age_result?: AgeVerificationResult;
-    /** Identity verification result (present when mode is 'identity' and status is 'completed') */
-    identity_result?: IdentityVerificationResult;
+    mode?: VerificationMode;
+    /** Verification result (present when status is 'completed') */
+    result?: AgeVerificationResult | IdentityVerificationResult;
     /** ISO timestamp when the session was created */
-    created_at: string;
+    created_at?: string;
     /** ISO timestamp when the session expires */
-    expires_at: string;
+    expires_at?: string;
 }
 
 // =============================================================================

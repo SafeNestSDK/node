@@ -1892,10 +1892,7 @@ export class Tuteliq {
      *
      * if (status.status === 'completed') {
      *   if (status.age_result) {
-     *     console.log('Is minor:', status.age_result.is_minor)
-     *   }
-     *   if (status.identity_result) {
-     *     console.log('Name:', status.identity_result.full_name)
+     *     console.log('Result:', status.result)
      *   }
      * }
      * ```
