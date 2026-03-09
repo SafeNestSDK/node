@@ -1099,6 +1099,18 @@ The SDK works in browsers that support the Fetch API:
 
 ---
 
+## Supported Languages
+
+Tuteliq supports **27 languages** with automatic detection — no configuration required.
+
+**English** (stable) and **26 beta languages**: Spanish, Portuguese, Ukrainian, Swedish, Norwegian, Danish, Finnish, German, French, Dutch, Polish, Italian, Turkish, Romanian, Greek, Czech, Hungarian, Bulgarian, Croatian, Slovak, Lithuanian, Latvian, Estonian, Slovenian, Maltese, and Irish.
+
+All 24 EU official languages + Ukrainian, Norwegian, and Turkish. Each language includes culture-specific safety guidelines covering local slang, grooming patterns, self-harm coded vocabulary, and filter evasion techniques.
+
+See the [Language Support docs](https://docs.tuteliq.ai/languages) for details.
+
+---
+
 ## Contributing
 
 We welcome contributions! Please see our [Contributing Guide](https://github.com/Tuteliq/node/blob/main/CONTRIBUTING.md) for details.
