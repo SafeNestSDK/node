@@ -211,6 +211,23 @@ export enum Language {
     FI = 'fi',
     DE = 'de',
     FR = 'fr',
+    NL = 'nl',
+    PL = 'pl',
+    IT = 'it',
+    TR = 'tr',
+    RO = 'ro',
+    EL = 'el',
+    CS = 'cs',
+    HU = 'hu',
+    BG = 'bg',
+    HR = 'hr',
+    SK = 'sk',
+    LT = 'lt',
+    LV = 'lv',
+    ET = 'et',
+    SL = 'sl',
+    MT = 'mt',
+    GA = 'ga',
 }
 
 /**

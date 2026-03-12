@@ -31,6 +31,8 @@ export interface DetectBullyingInput extends TrackingFields {
     content: string;
     /** Context for better analysis - string shorthand or detailed object */
     context?: ContextInput;
+    /** Minimum severity to show crisis support resources (default: 'high'). Critical always shows. */
+    supportThreshold?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export interface BullyingResult {
@@ -82,6 +84,8 @@ export interface DetectGroomingInput extends TrackingFields {
     childAge?: number;
     /** Context for better analysis */
     context?: ContextInput;
+    /** Minimum severity to show crisis support resources (default: 'high'). Critical always shows. */
+    supportThreshold?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export interface GroomingResult {
@@ -122,6 +126,8 @@ export interface DetectUnsafeInput extends TrackingFields {
     content: string;
     /** Context for better analysis */
     context?: ContextInput;
+    /** Minimum severity to show crisis support resources (default: 'high'). Critical always shows. */
+    supportThreshold?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 export interface UnsafeResult {

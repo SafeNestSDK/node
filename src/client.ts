@@ -285,6 +285,10 @@ export class Tuteliq {
      * Build request body for unified detection endpoints
      */
     private buildDetectionBody(input: DetectionInput): Record<string, unknown> {
+        const options: Record<string, unknown> = {};
+        if (input.supportThreshold) options.support_threshold = input.supportThreshold;
+        if (input.includeEvidence) options.include_evidence = true;
+
         return {
             text: input.content,
             context: this.normalizeContext(input.context),
@@ -292,6 +296,7 @@ export class Tuteliq {
             ...(input.external_id && { external_id: input.external_id }),
             ...(input.customer_id && { customer_id: input.customer_id }),
             ...(input.metadata && { metadata: input.metadata }),
+            ...(Object.keys(options).length > 0 && { options }),
         };
     }
 
@@ -569,6 +574,9 @@ export class Tuteliq {
     async detectBullying(input: DetectBullyingInput): Promise<BullyingResult> {
         this.validateContent(input.content);
 
+        const options: Record<string, unknown> = {};
+        if (input.supportThreshold) options.support_threshold = input.supportThreshold;
+
         return this.requestWithRetry<BullyingResult>(
             'POST',
             '/api/v1/safety/bullying',
@@ -578,6 +586,7 @@ export class Tuteliq {
                 ...(input.external_id && { external_id: input.external_id }),
                 ...(input.customer_id && { customer_id: input.customer_id }),
                 ...(input.metadata && { metadata: input.metadata }),
+                ...(Object.keys(options).length > 0 && { options }),
             }
         );
     }
@@ -603,6 +612,9 @@ export class Tuteliq {
     async detectGrooming(input: DetectGroomingInput): Promise<GroomingResult> {
         this.validateMessages(input.messages);
 
+        const options: Record<string, unknown> = {};
+        if (input.supportThreshold) options.support_threshold = input.supportThreshold;
+
         return this.requestWithRetry<GroomingResult>(
             'POST',
             '/api/v1/safety/grooming',
@@ -618,6 +630,7 @@ export class Tuteliq {
                 ...(input.external_id && { external_id: input.external_id }),
                 ...(input.customer_id && { customer_id: input.customer_id }),
                 ...(input.metadata && { metadata: input.metadata }),
+                ...(Object.keys(options).length > 0 && { options }),
             }
         );
     }
@@ -639,6 +652,9 @@ export class Tuteliq {
     async detectUnsafe(input: DetectUnsafeInput): Promise<UnsafeResult> {
         this.validateContent(input.content);
 
+        const options: Record<string, unknown> = {};
+        if (input.supportThreshold) options.support_threshold = input.supportThreshold;
+
         return this.requestWithRetry<UnsafeResult>(
             'POST',
             '/api/v1/safety/unsafe',
@@ -648,6 +664,7 @@ export class Tuteliq {
                 ...(input.external_id && { external_id: input.external_id }),
                 ...(input.customer_id && { customer_id: input.customer_id }),
                 ...(input.metadata && { metadata: input.metadata }),
+                ...(Object.keys(options).length > 0 && { options }),
             }
         );
     }
@@ -1526,13 +1543,17 @@ export class Tuteliq {
             throw new ValidationError('Maximum 10 detection endpoints per request');
         }
 
+        const options: Record<string, unknown> = {};
+        if (input.includeEvidence) options.include_evidence = true;
+        if (input.supportThreshold) options.support_threshold = input.supportThreshold;
+
         return this.requestWithRetry<AnalyseMultiResult>(
             'POST', '/api/v1/analyse/multi',
             {
                 text: input.content,
                 endpoints: input.detections,
                 context: this.normalizeContext(input.context),
-                ...(input.includeEvidence && { options: { include_evidence: true } }),
+                ...(Object.keys(options).length > 0 && { options }),
                 ...(input.external_id && { external_id: input.external_id }),
                 ...(input.customer_id && { customer_id: input.customer_id }),
                 ...(input.metadata && { metadata: input.metadata }),

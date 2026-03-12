@@ -21,6 +21,8 @@ export interface DetectionInput extends TrackingFields {
     context?: ContextInput;
     /** Include evidence excerpts in the response */
     includeEvidence?: boolean;
+    /** Minimum severity to show crisis support resources (default: 'high'). Critical always shows. */
+    supportThreshold?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 /**
@@ -133,6 +135,8 @@ export interface AnalyseMultiInput extends TrackingFields {
     context?: ContextInput;
     /** Include evidence in individual results */
     includeEvidence?: boolean;
+    /** Minimum severity to show crisis support resources (default: 'high'). Critical always shows. */
+    supportThreshold?: 'low' | 'medium' | 'high' | 'critical';
 }
 
 /**
