@@ -6,7 +6,7 @@
 
 <p align="center">
   <strong>Official TypeScript/JavaScript SDK for the Tuteliq API</strong><br>
-  AI-powered child safety analysis for modern applications
+  AI-powered child safety, fraud detection, and content moderation for modern applications
 </p>
 
 <p align="center">
@@ -29,15 +29,25 @@
 
 ## Overview
 
-Tuteliq provides AI-powered content analysis to help protect children in digital environments. This SDK makes it easy to integrate Tuteliq's capabilities into your Node.js, browser, or edge runtime applications.
+Tuteliq provides AI-powered content analysis to help protect children and vulnerable users in digital environments. This SDK makes it easy to integrate Tuteliq's capabilities into your Node.js, browser, or edge runtime applications.
 
 ### Key Features
 
 - **Bullying Detection** — Identify verbal abuse, exclusion, and harassment patterns
 - **Grooming Risk Analysis** — Detect predatory behavior across conversation threads
 - **Unsafe Content Detection** — Flag self-harm, violence, hate speech, and age-inappropriate content
+- **Social Engineering Detection** — Detect pretexting, urgency fabrication, trust exploitation, and authority impersonation
+- **App Fraud Detection** — Identify fake investment platforms, phishing apps, subscription traps, and malicious links
+- **Romance Scam Detection** — Detect love-bombing, financial requests, and identity deception
+- **Mule Recruitment Detection** — Identify money mule recruitment and laundering facilitation
+- **Gambling Harm Detection** — Detect chasing losses, concealment behavior, and gambling-related distress
+- **Coercive Control Detection** — Identify isolation tactics, financial control, monitoring, and threats
+- **Vulnerability Exploitation Detection** — Detect targeting of the elderly, disabled, or emotionally vulnerable
+- **Radicalisation Detection** — Identify extremist rhetoric, us-vs-them framing, and ideological grooming
+- **Multi-Endpoint Analysis** — Run multiple detection types on a single piece of content in one call
 - **Voice Analysis** — Transcribe audio and run safety analysis on the transcript with timestamped segments
 - **Image Analysis** — Visual safety classification with OCR text extraction and text safety analysis
+- **Video Analysis** — Analyze video files for safety concerns via key frame extraction
 - **Emotional State Analysis** — Understand emotional signals and concerning trends
 - **Action Guidance** — Generate age-appropriate response recommendations
 - **Incident Reports** — Create professional summaries for review
@@ -117,7 +127,9 @@ const tuteliq = new Tuteliq('your-api-key', {
 
 ---
 
-### Tracking Fields
+### Common Parameters
+
+#### Tracking Fields
 
 All detection methods accept optional tracking fields for correlation, multi-tenant routing, and custom metadata:
 
@@ -148,6 +160,24 @@ These fields are:
 - **Echoed** in the API response for easy matching
 - **Included** in webhook payloads, enabling you to route alerts to the correct customer from a single webhook endpoint
 - **Stored** with the incident in Firestore for audit trail
+
+#### Support Threshold
+
+All detection methods accept an optional `supportThreshold` parameter that controls when crisis support resources are included in the response:
+
+```typescript
+const result = await tuteliq.detectUnsafe({
+  content: "I don't want to be here anymore",
+  supportThreshold: 'medium'  // 'low' | 'medium' | 'high' (default) | 'critical'
+})
+
+// When severity meets or exceeds the threshold, result.support will contain:
+// - helpline phone numbers (region-aware)
+// - crisis text lines
+// - relevant web resources
+```
+
+> **Note:** `critical` severity always includes support resources regardless of the threshold setting.
 
 ---
 
@@ -241,6 +271,191 @@ console.log(result.bullying)         // Full bullying result (if included)
 console.log(result.unsafe)           // Full unsafe result (if included)
 console.log(result.recommended_action) // Combined recommendation
 ```
+
+---
+
+### Fraud & Harm Detection
+
+All fraud and harm detection methods share the same `DetectionInput` and return a unified `DetectionResult`:
+
+```typescript
+import type { DetectionInput, DetectionResult } from '@tuteliq/sdk'
+```
+
+**Input:**
+
+```typescript
+{
+  content: string,                                      // Text content to analyze
+  context?: ContextInput,                               // Optional analysis context
+  includeEvidence?: boolean,                            // Include evidence excerpts
+  supportThreshold?: 'low' | 'medium' | 'high' | 'critical',  // Crisis support threshold
+  external_id?: string,                                 // Tracking ID
+  customer_id?: string,                                 // Customer ID
+  metadata?: Record<string, unknown>,                   // Custom metadata
+}
+```
+
+**Result:**
+
+```typescript
+{
+  endpoint: string,                    // e.g., 'social-engineering'
+  detected: boolean,                   // Whether a threat was detected
+  severity: number,                    // 0.0 - 1.0
+  confidence: number,                  // 0.0 - 1.0
+  risk_score: number,                  // Age-adjusted risk score (0.0 - 1.0)
+  level: 'none' | 'low' | 'medium' | 'high' | 'critical',
+  categories: DetectionCategory[],     // Detected categories with tags and confidence
+  evidence?: DetectionEvidence[],      // Evidence excerpts (if includeEvidence was true)
+  age_calibration?: AgeCalibration,    // Age calibration details
+  recommended_action: string,
+  rationale: string,
+  language: string,                    // Detected language code
+  language_status: LanguageStatus,     // 'stable' | 'beta'
+  credits_used?: number,
+  processing_time_ms?: number,
+}
+```
+
+#### `detectSocialEngineering(input)`
+
+Detects social engineering tactics such as pretexting, urgency fabrication, trust exploitation, and authority impersonation.
+
+```typescript
+const result = await tuteliq.detectSocialEngineering({
+  content: "Your account will be suspended unless you verify your details immediately",
+  includeEvidence: true,
+  context: { sender_trust: 'unknown' }
+})
+
+console.log(result.detected)        // true
+console.log(result.level)           // 'high'
+console.log(result.categories)      // [{ tag: 'URGENCY_FABRICATION', label: 'Urgency Fabrication', confidence: 0.9 }]
+console.log(result.evidence)        // [{ text: 'suspended unless', tactic: 'URGENCY_FABRICATION', weight: 0.9 }]
+console.log(result.rationale)       // "Classic urgency-based social engineering..."
+```
+
+#### `detectAppFraud(input)`
+
+Detects app-based fraud patterns such as fake investment platforms, phishing apps, subscription traps, and malicious download links.
+
+```typescript
+const result = await tuteliq.detectAppFraud({
+  content: "Download this app to earn $500/day with guaranteed returns!"
+})
+```
+
+#### `detectRomanceScam(input)`
+
+Detects romance scam patterns such as love-bombing, financial requests, identity deception, and emotional manipulation.
+
+```typescript
+const result = await tuteliq.detectRomanceScam({
+  content: "I know we just met online but I need help with a medical bill. I'll pay you back, I promise."
+})
+```
+
+#### `detectMuleRecruitment(input)`
+
+Detects money mule recruitment tactics such as easy-money offers, bank account sharing requests, and laundering facilitation.
+
+```typescript
+const result = await tuteliq.detectMuleRecruitment({
+  content: "Easy job, just receive money in your bank and forward 90% to this account"
+})
+```
+
+#### `detectGamblingHarm(input)`
+
+Detects gambling-related harm indicators such as chasing losses, borrowing to gamble, concealment behavior, and emotional distress.
+
+```typescript
+const result = await tuteliq.detectGamblingHarm({
+  content: "I lost everything again but I know if I just bet one more time I can win it all back"
+})
+```
+
+#### `detectCoerciveControl(input)`
+
+Detects coercive control patterns such as isolation tactics, financial control, monitoring behavior, threats, and emotional manipulation.
+
+```typescript
+const result = await tuteliq.detectCoerciveControl({
+  content: "You're not allowed to see your friends anymore. Give me your phone, I need to check your messages."
+})
+```
+
+#### `detectVulnerabilityExploitation(input)`
+
+Detects exploitation of vulnerable individuals including targeting the elderly, disabled, financially distressed, or emotionally vulnerable. Returns a `cross_endpoint_modifier` (1.0-2.0) when used with `analyseMulti`.
+
+```typescript
+const result = await tuteliq.detectVulnerabilityExploitation({
+  content: "Since your husband passed, you must be so lonely. I can help manage your finances."
+})
+```
+
+#### `detectRadicalisation(input)`
+
+Detects radicalisation indicators such as extremist rhetoric, us-vs-them framing, calls to action, conspiracy narratives, and ideological grooming.
+
+```typescript
+const result = await tuteliq.detectRadicalisation({
+  content: "They are the enemy. Only we understand the truth. It's time to take action."
+})
+```
+
+---
+
+### Multi-Endpoint Analysis
+
+#### `analyseMulti(input)`
+
+Run multiple detection endpoints on a single piece of content in one API call. When `vulnerability-exploitation` is included, its cross-endpoint modifier automatically adjusts severity scores across all other results.
+
+```typescript
+import { Detection } from '@tuteliq/sdk'
+
+const result = await tuteliq.analyseMulti({
+  content: "Suspicious message content",
+  detections: [
+    Detection.SOCIAL_ENGINEERING,
+    Detection.ROMANCE_SCAM,
+    Detection.VULNERABILITY_EXPLOITATION
+  ],
+  includeEvidence: true,
+  supportThreshold: 'medium',
+})
+
+console.log(result.summary.total_endpoints)     // 3
+console.log(result.summary.detected_count)       // 2
+console.log(result.summary.highest_risk)         // { endpoint: 'romance-scam', risk_score: 0.85 }
+console.log(result.summary.overall_risk_level)   // 'high'
+console.log(result.cross_endpoint_modifier)      // 1.3 (vulnerability modifier)
+console.log(result.credits_used)                 // 3
+
+// Individual results
+for (const r of result.results) {
+  console.log(`${r.endpoint}: detected=${r.detected}, risk=${r.risk_score}, level=${r.level}`)
+}
+```
+
+**Available detection endpoints:**
+
+| Endpoint ID | Method |
+|-------------|--------|
+| `bullying` | `detectBullying` |
+| `grooming` | `detectGrooming` |
+| `unsafe` | `detectUnsafe` |
+| `social-engineering` | `detectSocialEngineering` |
+| `app-fraud` | `detectAppFraud` |
+| `romance-scam` | `detectRomanceScam` |
+| `mule-recruitment` | `detectMuleRecruitment` |
+| `gambling-harm` | `detectGamblingHarm` |
+| `coercive-control` | `detectCoerciveControl` |
+| `vulnerability-exploitation` | `detectVulnerabilityExploitation` |
+| `radicalisation` | `detectRadicalisation` |
 
 ---
 
@@ -692,6 +907,106 @@ console.log(Object.keys(data.data))         // ['api_keys', 'incidents', ...]
 console.log(data.data.incidents.length)     // 5
 ```
 
+#### `recordConsent(input)`
+
+Record user consent for data processing (GDPR Article 6).
+
+```typescript
+const result = await tuteliq.recordConsent({
+  consentType: 'data_processing',
+  granted: true,
+})
+```
+
+#### `getConsentStatus(consentType)`
+
+Get current consent status for a specific consent type.
+
+```typescript
+const status = await tuteliq.getConsentStatus('data_processing')
+console.log(status.granted)       // true
+console.log(status.granted_at)    // '2026-01-15T...'
+```
+
+#### `withdrawConsent(consentType)`
+
+Withdraw a previously granted consent.
+
+```typescript
+await tuteliq.withdrawConsent('data_processing')
+```
+
+#### `rectifyData(input)`
+
+Correct personal data (Right to Rectification, GDPR Article 16).
+
+```typescript
+const result = await tuteliq.rectifyData({
+  field: 'email',
+  newValue: 'new@example.com',
+})
+```
+
+#### `getAuditLogs(options?)`
+
+Get audit trail of all data operations.
+
+```typescript
+const logs = await tuteliq.getAuditLogs({ limit: 50 })
+logs.entries.forEach(entry => {
+  console.log(entry.action, entry.timestamp, entry.details)
+})
+```
+
+---
+
+### Breach Management
+
+#### `logBreach(input)`
+
+Log a new data breach. Starts the 72-hour GDPR notification clock.
+
+```typescript
+const result = await tuteliq.logBreach({
+  title: 'Unauthorized access to user data',
+  description: 'API key was exposed in a public repository',
+  severity: 'high',
+  affected_users: 150,
+})
+
+console.log(result.breach_id)          // 'breach_001'
+console.log(result.notification_deadline) // ISO timestamp (72 hours from now)
+```
+
+#### `listBreaches(options?)`
+
+List all data breaches, optionally filtered by status.
+
+```typescript
+const { breaches } = await tuteliq.listBreaches({ status: 'open' })
+breaches.forEach(b => console.log(b.title, b.status, b.created_at))
+```
+
+#### `getBreach(breachId)`
+
+Get details of a specific data breach.
+
+```typescript
+const breach = await tuteliq.getBreach('breach_001')
+console.log(breach.title, breach.status, breach.affected_users)
+```
+
+#### `updateBreachStatus(breachId, input)`
+
+Update breach status and notification progress.
+
+```typescript
+await tuteliq.updateBreachStatus('breach_001', {
+  status: 'resolved',
+  resolution_notes: 'API key rotated, affected users notified',
+})
+```
+
 ---
 
 ## Usage Tracking
@@ -722,11 +1037,21 @@ Different endpoints consume different amounts of credits based on complexity:
 | `detectBullying()` | 1 | Single text analysis |
 | `detectUnsafe()` | 1 | Single text analysis |
 | `detectGrooming()` | 1 per 10 msgs | `ceil(messages / 10)`, min 1 |
+| `detectSocialEngineering()` | 1 | Single text analysis |
+| `detectAppFraud()` | 1 | Single text analysis |
+| `detectRomanceScam()` | 1 | Single text analysis |
+| `detectMuleRecruitment()` | 1 | Single text analysis |
+| `detectGamblingHarm()` | 1 | Single text analysis |
+| `detectCoerciveControl()` | 1 | Single text analysis |
+| `detectVulnerabilityExploitation()` | 1 | Single text analysis |
+| `detectRadicalisation()` | 1 | Single text analysis |
+| `analyseMulti()` | 1 per endpoint | Sum of individual endpoint costs |
 | `analyzeEmotions()` | 1 per 10 msgs | `ceil(messages / 10)`, min 1 |
 | `getActionPlan()` | 2 | Longer generation |
 | `generateReport()` | 3 | Structured output |
 | `analyzeVoice()` | 5 | Transcription + analysis |
 | `analyzeImage()` | 3 | Vision + OCR + analysis |
+| `analyzeVideo()` | 10 | Key frame extraction + analysis |
 | `createVerificationSession()` (age) | 10 | Charged on completion |
 | `createVerificationSession()` (identity) | 15 | Charged on completion |
 
@@ -849,6 +1174,44 @@ try {
 
 ---
 
+## Supported Languages (27)
+
+Language is auto-detected when not specified. Beta languages have good accuracy but may have edge cases compared to English. All 24 EU official languages + Ukrainian, Norwegian, and Turkish.
+
+| Language | Code | Status |
+|----------|------|--------|
+| English | `en` | Stable |
+| Spanish | `es` | Beta |
+| Portuguese | `pt` | Beta |
+| French | `fr` | Beta |
+| German | `de` | Beta |
+| Italian | `it` | Beta |
+| Dutch | `nl` | Beta |
+| Polish | `pl` | Beta |
+| Romanian | `ro` | Beta |
+| Turkish | `tr` | Beta |
+| Greek | `el` | Beta |
+| Czech | `cs` | Beta |
+| Hungarian | `hu` | Beta |
+| Bulgarian | `bg` | Beta |
+| Croatian | `hr` | Beta |
+| Slovak | `sk` | Beta |
+| Slovenian | `sl` | Beta |
+| Lithuanian | `lt` | Beta |
+| Latvian | `lv` | Beta |
+| Estonian | `et` | Beta |
+| Maltese | `mt` | Beta |
+| Irish | `ga` | Beta |
+| Swedish | `sv` | Beta |
+| Norwegian | `no` | Beta |
+| Danish | `da` | Beta |
+| Finnish | `fi` | Beta |
+| Ukrainian | `uk` | Beta |
+
+Each language includes culture-specific safety guidelines covering local slang, grooming patterns, self-harm coded vocabulary, and filter evasion techniques.
+
+---
+
 ## TypeScript Support
 
 Full TypeScript support with comprehensive type definitions:
@@ -864,6 +1227,17 @@ import type {
   ActionPlanResult,
   ReportResult,
   AnalyzeResult,
+
+  // Detection Results (Fraud & Safety Extended)
+  DetectionInput,
+  DetectionResult,
+  DetectionCategory,
+  DetectionEvidence,
+  AgeCalibration,
+  MessageAnalysis,
+  AnalyseMultiInput,
+  AnalyseMultiResult,
+  AnalyseMultiSummary,
 
   // Media Results
   VoiceAnalysisResult,
@@ -890,7 +1264,7 @@ import type {
   UsageByToolResult,
   UsageMonthlyResult,
 
-  // Inputs
+  // Safety Inputs
   DetectBullyingInput,
   DetectGroomingInput,
   DetectUnsafeInput,
@@ -903,6 +1277,19 @@ import type {
   // Account (GDPR)
   AccountDeletionResult,
   AccountExportResult,
+  RecordConsentInput,
+  ConsentStatusResult,
+  ConsentActionResult,
+  RectifyDataInput,
+  RectifyDataResult,
+  AuditLogsResult,
+
+  // Breach Management
+  LogBreachInput,
+  LogBreachResult,
+  BreachListResult,
+  BreachResult,
+  UpdateBreachInput,
 
   // Verification
   CreateVerificationSessionInput,
@@ -940,6 +1327,9 @@ import {
   WebhookEventType,
   IncidentStatus,
   ErrorCode,
+  Language,
+  LanguageStatus,
+  Detection,
   VerificationMode,
   DocumentType,
   VerificationStatus,
@@ -955,6 +1345,16 @@ if (result.severity === Severity.CRITICAL) {
 if (result.grooming_risk === GroomingRisk.HIGH) {
   // Handle high grooming risk
 }
+
+// Detection endpoint IDs for multi-endpoint analysis
+const result = await tuteliq.analyseMulti({
+  content: "Message to analyze",
+  detections: [Detection.SOCIAL_ENGINEERING, Detection.ROMANCE_SCAM],
+})
+
+// Language codes
+console.log(Language.EN)  // 'en'
+console.log(Language.PT)  // 'pt'
 
 // Verification mode
 const session = await tuteliq.createVerificationSession({
@@ -1099,46 +1499,7 @@ The SDK works in browsers that support the Fetch API:
 
 ---
 
-## Supported Languages
-
-Tuteliq supports **27 languages** with automatic detection — no configuration required.
-
-**English** (stable) and **26 beta languages**: Spanish, Portuguese, Ukrainian, Swedish, Norwegian, Danish, Finnish, German, French, Dutch, Polish, Italian, Turkish, Romanian, Greek, Czech, Hungarian, Bulgarian, Croatian, Slovak, Lithuanian, Latvian, Estonian, Slovenian, Maltese, and Irish.
-
-All 24 EU official languages + Ukrainian, Norwegian, and Turkish. Each language includes culture-specific safety guidelines covering local slang, grooming patterns, self-harm coded vocabulary, and filter evasion techniques.
-
-See the [Language Support docs](https://docs.tuteliq.ai/languages) for details.
-
----
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](https://github.com/Tuteliq/node/blob/main/CONTRIBUTING.md) for details.
-
-```bash
-# Clone the repo
-git clone https://github.com/Tuteliq/node.git
-cd node
-
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Build
-npm run build
-```
-
----
-
-## API Documentation
-
-- **Base URL**: `https://api.tuteliq.ai`
-- **Swagger UI**: [docs.tuteliq.ai](https://docs.tuteliq.ai)
-- **OpenAPI JSON**: [docs.tuteliq.ai/json](https://docs.tuteliq.ai/json)
-
-### Rate Limits
+## Rate Limits & Pricing
 
 Rate limits depend on your subscription tier:
 
@@ -1181,6 +1542,35 @@ PII redaction is **enabled by default** on the Tuteliq API. It automatically str
 
 ---
 
+## API Documentation
+
+- **Base URL**: `https://api.tuteliq.ai`
+- **Swagger UI**: [docs.tuteliq.ai](https://docs.tuteliq.ai)
+- **OpenAPI JSON**: [docs.tuteliq.ai/json](https://docs.tuteliq.ai/json)
+
+---
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](https://github.com/Tuteliq/node/blob/main/CONTRIBUTING.md) for details.
+
+```bash
+# Clone the repo
+git clone https://github.com/Tuteliq/node.git
+cd node
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build
+npm run build
+```
+
+---
+
 ## Support
 
 - **Documentation**: [docs.tuteliq.ai](https://docs.tuteliq.ai)
@@ -1205,10 +1595,10 @@ Tuteliq offers a **free certification program** for anyone who wants to deepen t
 | Track | Who it's for | Duration |
 |-------|-------------|----------|
 | **Parents & Caregivers** | Parents, guardians, grandparents, teachers, coaches | ~90 min |
-| **Young People (10–16)** | Young people who want to learn to spot manipulation | ~60 min |
+| **Young People (10-16)** | Young people who want to learn to spot manipulation | ~60 min |
 | **Companies & Platforms** | Product managers, trust & safety teams, CTOs, compliance officers | ~120 min |
 
-**Start here →** [tuteliq.ai/certify](https://tuteliq.ai/certify)
+**Start here:** [tuteliq.ai/certify](https://tuteliq.ai/certify)
 
 - 100% Free — no login required
 - Verifiable certificate on completion
@@ -1222,7 +1612,7 @@ Before you decide to contribute or sponsor, read these numbers. They are not pro
 
 - **302 million** children are victims of online sexual exploitation and abuse every year. That is **10 children every second**. *(Childlight / University of Edinburgh, 2024)*
 - **1 in 8** children globally have been victims of non-consensual sexual imagery in the past year. *(Childlight, 2024)*
-- **370 million** girls and women alive today experienced rape or sexual assault in childhood. An estimated **240–310 million** boys and men experienced the same. *(UNICEF, 2024)*
+- **370 million** girls and women alive today experienced rape or sexual assault in childhood. An estimated **240-310 million** boys and men experienced the same. *(UNICEF, 2024)*
 - **29.2 million** incidents of suspected child sexual exploitation were reported to NCMEC's CyberTipline in 2024 alone — containing **62.9 million files** (images, videos). *(NCMEC, 2025)*
 - **546,000** reports of online enticement (adults grooming children) in 2024 — a **192% increase** from the year before. *(NCMEC, 2025)*
 - **1,325% increase** in AI-generated child sexual abuse material reports between 2023 and 2024. The technology that should protect children is being weaponized against them. *(NCMEC, 2025)*
