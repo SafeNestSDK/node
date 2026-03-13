@@ -141,6 +141,8 @@ export interface UnsafeResult {
     confidence: number;
     /** Risk score (0-1) */
     risk_score: number;
+    /** Risk level derived from risk_score */
+    risk_level?: 'none' | 'low' | 'medium' | 'high' | 'critical';
     /** Explanation of the analysis */
     rationale: string;
     /** Recommended action to take */
@@ -177,6 +179,8 @@ export interface AnalyzeResult {
     risk_level: 'safe' | 'low' | 'medium' | 'high' | 'critical';
     /** Overall risk score (0-1) */
     risk_score: number;
+    /** Overall confidence score (0-1), highest from sub-results */
+    confidence: number;
     /** Summary of findings */
     summary: string;
     /** Bullying detection result (if included) */

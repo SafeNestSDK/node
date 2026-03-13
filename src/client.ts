@@ -726,14 +726,17 @@ export class Tuteliq {
         let bullyingResult: BullyingResult | undefined;
         let unsafeResult: UnsafeResult | undefined;
         let maxRiskScore = 0;
+        let maxConfidence = 0;
 
         results.forEach((result, i) => {
             if (types[i] === 'bullying') {
                 bullyingResult = result as BullyingResult;
                 maxRiskScore = Math.max(maxRiskScore, bullyingResult.risk_score);
+                maxConfidence = Math.max(maxConfidence, bullyingResult.confidence ?? 0);
             } else if (types[i] === 'unsafe') {
                 unsafeResult = result as UnsafeResult;
                 maxRiskScore = Math.max(maxRiskScore, unsafeResult.risk_score);
+                maxConfidence = Math.max(maxConfidence, unsafeResult.confidence ?? 0);
             }
         });
 
@@ -773,6 +776,7 @@ export class Tuteliq {
         return {
             risk_level,
             risk_score: maxRiskScore,
+            confidence: maxConfidence,
             summary,
             bullying: bullyingResult,
             unsafe: unsafeResult,
