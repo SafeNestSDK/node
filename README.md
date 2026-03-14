@@ -318,6 +318,21 @@ import type { DetectionInput, DetectionResult } from '@tuteliq/sdk'
 }
 ```
 
+#### Context Fields
+
+All detection methods accept an optional `context` object:
+
+| Field | Type | Effect |
+|-------|------|--------|
+| `ageGroup` | `string` | Age group (e.g., `"10-12"`, `"13-15"`, `"under 18"`). Triggers age-calibrated scoring. |
+| `language` | `string` | ISO 639-1 code. Auto-detected if omitted. |
+| `platform` | `string` | Platform name (e.g., `"Discord"`, `"Roblox"`). Adjusts for platform norms. |
+| `sender_trust` | `string` | `"verified"`, `"trusted"`, or `"unknown"`. See below. |
+| `sender_name` | `string` | Sender identifier (used with `sender_trust`). |
+| `conversation_history` | `array` | Prior messages for context-aware analysis. |
+
+**`sender_trust` behavior:** When set to `"verified"` or `"trusted"`, the API fully suppresses `AUTH_IMPERSONATION` — a verified sender cannot be impersonating an authority. Routine urgency (schedules, deadlines) is also suppressed. Only genuinely malicious content (credential theft, phishing links, financial demands) will flag a verified sender. This prevents false positives on legitimate institutional messages.
+
 #### `detectSocialEngineering(input)`
 
 Detects social engineering tactics such as pretexting, urgency fabrication, trust exploitation, and authority impersonation.
