@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-03-15
+
+### Added
+
+- **`country` context field** — Pass ISO 3166-1 alpha-2 country code (e.g., `"GB"`, `"US"`, `"SE"`) in the `context` object to receive geo-localised crisis helpline data in detection responses. Falls back to user profile country if omitted.
+
+### Improved
+
+- **Action escalation for minors** — All detection endpoints now enforce minimum `flag_for_review` when harm is detected and the subject is a minor. Criminal indicators (sextortion, trafficking, CSAM) targeting minors automatically escalate to `immediate_intervention`.
+- **Risk score distribution** — Detection prompts now instruct the LLM to use graduated scoring across the full 0.0–1.0 range instead of clustering around a single value.
+- **Evidence tactic format** — Evidence tactic fields are now normalised to SCREAMING_SNAKE_CASE (e.g., `"EMOTIONAL_MANIPULATION"` instead of `"Emotional Manipulation"`).
+
 ## [1.0.0] - 2024-02-05
 
 ### Added

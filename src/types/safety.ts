@@ -20,6 +20,8 @@ export type ContextInput = string | {
     relationship?: string;
     /** Platform type (e.g., "chat", "social_media", "gaming") */
     platform?: string;
+    /** ISO 3166-1 alpha-2 country code (e.g., "GB", "US") for geo-localised helpline data */
+    country?: string;
 };
 
 // =============================================================================
