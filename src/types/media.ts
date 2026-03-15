@@ -190,3 +190,140 @@ export interface ImageAnalysisResult {
     /** Echo of provided metadata */
     metadata?: Record<string, unknown>;
 }
+
+// =============================================================================
+// Document Analysis
+// =============================================================================
+
+/** Valid endpoint names for document analysis */
+export type DocumentEndpointName =
+    | 'unsafe'
+    | 'bullying'
+    | 'grooming'
+    | 'social-engineering'
+    | 'coercive-control'
+    | 'radicalisation'
+    | 'romance-scam'
+    | 'mule-recruitment';
+
+export interface AnalyzeDocumentInput extends TrackingFields {
+    /** PDF file — Buffer, Blob, or File */
+    file: Buffer | Blob | File;
+    /** Original filename (e.g., "report.pdf") */
+    filename: string;
+    /** Detection endpoints to run on each page. Defaults to ['unsafe', 'coercive-control', 'radicalisation']. */
+    endpoints?: DocumentEndpointName[];
+    /** Customer-provided file reference ID (echoed in response) */
+    fileId?: string;
+    /** Age group for calibrated analysis */
+    ageGroup?: string;
+    /** Language hint (ISO 639-1) */
+    language?: string;
+    /** Platform name */
+    platform?: string;
+    /** Minimum severity to include crisis helplines. Default: "high". */
+    supportThreshold?: 'low' | 'medium' | 'high' | 'critical';
+}
+
+export interface DocumentExtractionSummary {
+    /** Pages where text was extracted from the PDF text layer */
+    text_layer_pages: number;
+    /** Pages where OCR was used */
+    ocr_pages: number;
+    /** Pages with insufficient text for analysis */
+    failed_pages: number;
+    /** Average OCR confidence (0.0-1.0) across OCR pages */
+    average_ocr_confidence: number;
+}
+
+export interface DocumentPageEndpointResult {
+    /** Endpoint name */
+    endpoint: string;
+    /** Whether a threat was detected */
+    detected: boolean;
+    /** Severity score (0-1) */
+    severity: number;
+    /** Confidence score (0-1) */
+    confidence: number;
+    /** Risk score (0-1) */
+    risk_score: number;
+    /** Risk level */
+    level: string;
+    /** Detected categories */
+    categories: Array<{ tag: string; label: string; confidence: number }>;
+    /** Evidence excerpts */
+    evidence: Array<{ text: string; tactic: string; weight: number }>;
+    /** Recommended action */
+    recommended_action: string;
+    /** Human-readable rationale */
+    rationale: string;
+    /** Detected language */
+    detected_language?: string;
+}
+
+export interface DocumentPageResult {
+    /** Page number (1-indexed) */
+    page_number: number;
+    /** First 200 characters of page text */
+    text_preview: string;
+    /** How text was extracted */
+    extraction_method: 'text_layer' | 'ocr';
+    /** OCR confidence if applicable */
+    ocr_confidence?: number;
+    /** Detection results per endpoint */
+    results: DocumentPageEndpointResult[];
+    /** Highest risk score on this page */
+    page_risk_score: number;
+    /** Page severity level */
+    page_severity: string;
+}
+
+export interface DocumentFlaggedPage {
+    /** Page number */
+    page_number: number;
+    /** Risk score */
+    risk_score: number;
+    /** Severity level */
+    severity: string;
+    /** Endpoints that detected threats on this page */
+    detected_endpoints: string[];
+}
+
+export interface DocumentAnalysisResult {
+    /** Customer-provided file reference (if provided) */
+    file_id?: string;
+    /** SHA-256 hash of the uploaded PDF for chain-of-custody verification */
+    document_hash: string;
+    /** Total pages in the document */
+    total_pages: number;
+    /** Pages with extractable text that were analyzed */
+    pages_analyzed: number;
+    /** Breakdown of text extraction results */
+    extraction_summary: DocumentExtractionSummary;
+    /** Per-page detection results */
+    page_results: DocumentPageResult[];
+    /** Highest risk score across all pages (0-1) */
+    overall_risk_score: number;
+    /** Overall severity level */
+    overall_severity: 'none' | 'low' | 'medium' | 'high' | 'critical';
+    /** Unique list of endpoints that detected threats */
+    detected_endpoints: string[];
+    /** Pages with risk score >= 0.3 */
+    flagged_pages: DocumentFlaggedPage[];
+    /** Dynamic credit cost based on pages analyzed and endpoints used */
+    credits_used: number;
+    /** Processing time in milliseconds */
+    processing_time_ms: number;
+    /** Detected language */
+    language?: string;
+    /** Language support status */
+    language_status?: string;
+    /** Crisis support resources (if triggered) */
+    support?: Record<string, unknown>;
+    /** Echo of provided external_id */
+    external_id?: string;
+    /** Echo of provided customer_id */
+    customer_id?: string;
+    /** Echo of provided metadata */
+    metadata?: Record<string, unknown>;
+}

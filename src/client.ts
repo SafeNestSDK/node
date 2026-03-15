@@ -78,6 +78,9 @@ import {
     // Video types
     AnalyzeVideoInput,
     VideoAnalysisResult,
+    // Document types
+    AnalyzeDocumentInput,
+    DocumentAnalysisResult,
     // Voice stream types
     VoiceStreamConfig,
     VoiceStreamHandlers,
@@ -1614,6 +1617,67 @@ export class Tuteliq {
         return withRetry(
             () => this.multipartRequest<VideoAnalysisResult>(
                 '/api/v1/safety/video',
+                formData
+            ),
+            { maxRetries: this.retries, initialDelay: this.retryDelay }
+        );
+    }
+
+    // =========================================================================
+    // Document Analysis
+    // =========================================================================
+
+    /**
+     * Analyze a PDF document for safety and compliance concerns.
+     *
+     * Extracts text from each page, runs detection endpoints in parallel,
+     * and returns per-page results with an overall risk assessment.
+     * Zero-retention: no document data is stored after processing.
+     *
+     * @example
+     * ```typescript
+     * import { readFileSync } from 'fs'
+     *
+     * const result = await tuteliq.analyzeDocument({
+     *   file: readFileSync('report.pdf'),
+     *   filename: 'report.pdf',
+     *   endpoints: ['unsafe', 'coercive-control', 'radicalisation'],
+     * })
+     *
+     * console.log('Risk:', result.overall_severity)
+     * console.log('Flagged pages:', result.flagged_pages.length)
+     * console.log('Credits:', result.credits_used)
+     * ```
+     */
+    async analyzeDocument(input: AnalyzeDocumentInput): Promise<DocumentAnalysisResult> {
+        if (!input.file) {
+            throw new ValidationError('PDF file is required');
+        }
+        if (!input.filename) {
+            throw new ValidationError('Filename is required');
+        }
+
+        const formData = new FormData();
+
+        if (Buffer.isBuffer(input.file)) {
+            formData.append('file', new Blob([input.file as unknown as BlobPart]), input.filename);
+        } else {
+            formData.append('file', input.file, input.filename);
+        }
+
+        if (input.endpoints) formData.append('endpoints', JSON.stringify(input.endpoints));
+        if (input.fileId) formData.append('file_id', input.fileId);
+        if (input.external_id) formData.append('external_id', input.external_id);
+        if (input.customer_id) formData.append('customer_id', input.customer_id);
+        if (input.ageGroup) formData.append('age_group', input.ageGroup);
+        if (input.language) formData.append('language', input.language);
+        formData.append('platform', Tuteliq.resolvePlatform(input.platform));
+        if (input.supportThreshold) formData.append('support_threshold', input.supportThreshold);
+        if (input.metadata) formData.append('metadata', JSON.stringify(input.metadata));
+
+        return withRetry(
+            () => this.multipartRequest<DocumentAnalysisResult>(
+                '/api/v1/safety/document',
                 formData
             ),
             { maxRetries: this.retries, initialDelay: this.retryDelay }

@@ -106,6 +106,13 @@ export type {
     AnalyzeImageInput,
     ImageAnalysisResult,
     VisionResult,
+    DocumentEndpointName,
+    AnalyzeDocumentInput,
+    DocumentAnalysisResult,
+    DocumentExtractionSummary,
+    DocumentPageResult,
+    DocumentPageEndpointResult,
+    DocumentFlaggedPage,
 
     // Webhook types
     Webhook,

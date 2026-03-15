@@ -684,4 +684,122 @@ describe('Tuteliq', () => {
             expect(tuteliq.lastLatencyMs).toBeGreaterThanOrEqual(0);
         });
     });
+
+    // =========================================================================
+    // Document Analysis
+    // =========================================================================
+
+    describe('analyzeDocument', () => {
+        const mockDocResult = {
+            file_id: 'report.pdf',
+            document_hash: 'sha256:abc123',
+            total_pages: 5,
+            pages_analyzed: 4,
+            extraction_summary: { text_layer_pages: 4, ocr_pages: 0, failed_pages: 1, average_ocr_confidence: 0 },
+            page_results: [
+                {
+                    page_number: 1,
+                    text_preview: 'Page one content...',
+                    extraction_method: 'text_layer',
+                    results: [{ endpoint: 'unsafe', detected: false, severity: 0, confidence: 0.95, risk_score: 0, level: 'low', categories: [], evidence: [], recommended_action: 'none', rationale: 'Safe' }],
+                    page_risk_score: 0,
+                    page_severity: 'none',
+                },
+            ],
+            overall_risk_score: 0,
+            overall_severity: 'none',
+            detected_endpoints: [],
+            flagged_pages: [],
+            credits_used: 12,
+            processing_time_ms: 3200,
+        };
+
+        it('should send multipart request to /api/v1/safety/document', async () => {
+            const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockDocResult));
+
+            const result = await tuteliq.analyzeDocument({
+                file: Buffer.from('fake pdf'),
+                filename: 'report.pdf',
+            });
+
+            expect(result.document_hash).toBe('sha256:abc123');
+            expect(result.total_pages).toBe(5);
+            expect(result.credits_used).toBe(12);
+
+            const [url, opts] = fetchSpy.mock.calls[0];
+            expect(url).toBe(`${API_BASE_URL}/api/v1/safety/document`);
+            expect(opts?.method).toBe('POST');
+            expect(opts?.body).toBeInstanceOf(FormData);
+        });
+
+        it('should pass endpoints as JSON array', async () => {
+            const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockDocResult));
+
+            await tuteliq.analyzeDocument({
+                file: Buffer.from('fake pdf'),
+                filename: 'report.pdf',
+                endpoints: ['unsafe', 'radicalisation'],
+            });
+
+            const body = fetchSpy.mock.calls[0][1]?.body as FormData;
+            expect(body.get('endpoints')).toBe('["unsafe","radicalisation"]');
+        });
+
+        it('should pass optional fields', async () => {
+            const fetchSpy = vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(mockDocResult));
+
+            await tuteliq.analyzeDocument({
+                file: Buffer.from('fake pdf'),
+                filename: 'report.pdf',
+                fileId: 'my-file-123',
+                ageGroup: '13-15',
+                language: 'sv',
+                supportThreshold: 'critical',
+                external_id: 'ext-1',
+                customer_id: 'cust-1',
+                metadata: { source: 'test' },
+            });
+
+            const body = fetchSpy.mock.calls[0][1]?.body as FormData;
+            expect(body.get('file_id')).toBe('my-file-123');
+            expect(body.get('age_group')).toBe('13-15');
+            expect(body.get('language')).toBe('sv');
+            expect(body.get('support_threshold')).toBe('critical');
+            expect(body.get('external_id')).toBe('ext-1');
+            expect(body.get('customer_id')).toBe('cust-1');
+            expect(body.get('metadata')).toBe('{"source":"test"}');
+        });
+
+        it('should throw ValidationError if file is missing', async () => {
+            await expect(
+                tuteliq.analyzeDocument({ file: null as any, filename: 'test.pdf' })
+            ).rejects.toThrow(ValidationError);
+        });
+
+        it('should throw ValidationError if filename is missing', async () => {
+            await expect(
+                tuteliq.analyzeDocument({ file: Buffer.from('pdf'), filename: '' })
+            ).rejects.toThrow(ValidationError);
+        });
+
+        it('should return flagged pages when threats detected', async () => {
+            const flaggedResult = {
+                ...mockDocResult,
+                overall_risk_score: 0.85,
+                overall_severity: 'critical',
+                detected_endpoints: ['coercive-control'],
+                flagged_pages: [{ page_number: 3, risk_score: 0.85, severity: 'critical', detected_endpoints: ['coercive-control'] }],
+            };
+            vi.spyOn(global, 'fetch').mockResolvedValueOnce(mockFetchResponse(flaggedResult));
+
+            const result = await tuteliq.analyzeDocument({
+                file: Buffer.from('fake pdf'),
+                filename: 'report.pdf',
+            });
+
+            expect(result.flagged_pages).toHaveLength(1);
+            expect(result.flagged_pages[0].page_number).toBe(3);
+            expect(result.detected_endpoints).toContain('coercive-control');
+        });
+    });
 });

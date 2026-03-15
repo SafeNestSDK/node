@@ -48,6 +48,7 @@ Tuteliq provides AI-powered content analysis to help protect children and vulner
 - **Voice Analysis** — Transcribe audio and run safety analysis on the transcript with timestamped segments
 - **Image Analysis** — Visual safety classification with OCR text extraction and text safety analysis
 - **Video Analysis** — Analyze video files for safety concerns via key frame extraction
+- **Document Analysis** — Upload PDFs for per-page multi-endpoint safety detection with chain-of-custody hashing
 - **Emotional State Analysis** — Understand emotional signals and concerning trends
 - **Action Guidance** — Generate age-appropriate response recommendations
 - **Incident Reports** — Create professional summaries for review
@@ -523,6 +524,43 @@ console.log(result.overall_severity)            // Combined severity
 ```
 
 Supported image formats: png, jpg, jpeg, gif, webp (max 10MB).
+
+#### `analyzeDocument(input)`
+
+Upload a PDF for per-page multi-endpoint safety analysis. Text is extracted from each page, detection endpoints run in parallel, and results are aggregated with an overall risk score. Zero-retention: no document data is stored after processing.
+
+```typescript
+import { readFileSync } from 'fs'
+
+const result = await tuteliq.analyzeDocument({
+  file: readFileSync('./report.pdf'),
+  filename: 'report.pdf',
+  endpoints: ['unsafe', 'coercive-control', 'radicalisation'],  // Optional (these are the defaults)
+  ageGroup: '13-15',                   // Optional: age-calibrated scoring
+  language: 'en',                      // Optional: auto-detected if omitted
+  fileId: 'doc-ref-789',              // Optional: echoed in response
+  supportThreshold: 'high',           // Optional: when to include crisis helplines
+})
+
+console.log(result.document_hash)          // SHA-256 for chain-of-custody
+console.log(result.total_pages)            // Total pages in PDF
+console.log(result.pages_analyzed)         // Pages with extractable text
+console.log(result.overall_risk_score)     // 0.0 - 1.0
+console.log(result.overall_severity)       // 'none' | 'low' | 'medium' | 'high' | 'critical'
+console.log(result.flagged_pages)          // Pages with risk >= 0.3
+console.log(result.detected_endpoints)     // Endpoints that found threats
+console.log(result.credits_used)           // Dynamic: max(3, pages × endpoints)
+
+// Per-page results
+for (const page of result.page_results) {
+  console.log(`Page ${page.page_number}: ${page.page_severity}`)
+  for (const r of page.results) {
+    if (r.detected) console.log(`  ${r.endpoint}: ${r.rationale}`)
+  }
+}
+```
+
+Available endpoints: `unsafe`, `bullying`, `grooming`, `social-engineering`, `coercive-control`, `radicalisation`, `romance-scam`, `mule-recruitment`. Supported format: PDF only (max 50MB, 100 pages).
 
 #### `voiceStream(config?, handlers?)`
 
@@ -1067,6 +1105,7 @@ Different endpoints consume different amounts of credits based on complexity:
 | `analyzeVoice()` | 5 | Transcription + analysis |
 | `analyzeImage()` | 3 | Vision + OCR + analysis |
 | `analyzeVideo()` | 10 | Key frame extraction + analysis |
+| `analyzeDocument()` | Dynamic | `max(3, pages × endpoints)` per document |
 | `createVerificationSession()` (age) | 10 | Charged on completion |
 | `createVerificationSession()` (identity) | 15 | Charged on completion |
 
